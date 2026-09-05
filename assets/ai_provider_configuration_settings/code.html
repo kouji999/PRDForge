@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=inter:wght@100..900&family=jetbrainsMono:wght@100..900&display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"error-container":"#93000a","on-background":"#e2e2e6","on-primary-container":"#0d0096","secondary-fixed-dim":"#bcc7d8","surface-container-lowest":"#0c0e11","surface-bright":"#37393d","on-secondary-fixed":"#111c29","secondary":"#bcc7d8","tertiary":"#89ceff","surface-container-high":"#282a2d","outline":"#908fa0","inverse-on-surface":"#2f3034","on-secondary-container":"#abb6c7","surface-dim":"#111316","secondary-container":"#3d4856","tertiary-container":"#009ada","primary":"#c0c1ff","inverse-surface":"#e2e2e6","on-primary":"#1000a9","on-error-container":"#ffdad6","surface-container-highest":"#333538","on-error":"#690005","on-secondary-fixed-variant":"#3d4856","secondary-fixed":"#d8e3f5","outline-variant":"#464554","error":"#ffb4ab","surface":"#111316","surface-container":"#1e2023","inverse-primary":"#494bd6","primary-fixed-dim":"#c0c1ff","on-tertiary-fixed":"#001e2f","on-primary-fixed":"#07006c","on-surface":"#e2e2e6","on-tertiary-fixed-variant":"#004c6e","on-secondary":"#27313e","surface-tint":"#c0c1ff","on-primary-fixed-variant":"#2f2ebe","tertiary-fixed-dim":"#89ceff","on-tertiary-container":"#002d43","primary-container":"#8083ff","on-tertiary":"#00344d","surface-container-low":"#1a1c1f","primary-fixed":"#e1e0ff","on-surface-variant":"#c7c4d7","surface-variant":"#333538","background":"#111316","tertiary-fixed":"#c9e6ff"},borderRadius:{DEFAULT:"0.125rem",lg:"0.25rem",xl:"0.5rem",full:"0.75rem"},spacing:{"space-md":"0.75rem","space-xs":"0.25rem","space-2xl":"3rem","gutter-canvas":"1.5rem","space-lg":"1.5rem","space-base":"1rem","space-sm":"0.5rem","space-xl":"2rem","inspector-width":"20rem","space-2xs":"0.125rem","sidebar-width":"16rem"},fontFamily:{"headline-lg-mobile":["inter"],"display-hero":["inter"],"headline-md":["inter"],"body-sm":["inter"],"headline-lg":["inter"],"label-sm":["jetbrainsMono"],"label-md":["jetbrainsMono"],"body-md":["inter"],"headline-sm":["inter"],"code-inline":["jetbrainsMono"],"body-lg":["inter"]},fontSize:{"headline-lg-mobile":["1.25rem",{lineHeight:"1.75rem",letterSpacing:"-0.015em",fontWeight:"600"}],"display-hero":["2.25rem",{lineHeight:"2.75rem",letterSpacing:"-0.025em",fontWeight:"600"}],"headline-md":["1.125rem",{lineHeight:"1.5rem",letterSpacing:"-0.015em",fontWeight:"500"}],"body-sm":["0.8125rem",{lineHeight:"1.25rem",letterSpacing:"0em",fontWeight:"400"}],"headline-lg":["1.5rem",{lineHeight:"2rem",letterSpacing:"-0.02em",fontWeight:"600"}],"label-sm":["0.6875rem",{lineHeight:"0.875rem",letterSpacing:"0.04em",fontWeight:"400"}],"label-md":["0.75rem",{lineHeight:"1rem",letterSpacing:"0.02em",fontWeight:"500"}],"body-md":["0.875rem",{lineHeight:"1.375rem",letterSpacing:"0em",fontWeight:"400"}],"headline-sm":["0.9375rem",{lineHeight:"1.375rem",letterSpacing:"-0.01em",fontWeight:"500"}],"code-inline":["0.8125rem",{lineHeight:"1.25rem",letterSpacing:"0em",fontWeight:"400"}],"body-lg":["1rem",{lineHeight:"1.625rem",letterSpacing:"-0.005em",fontWeight:"400"}]}}}};</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container"><aside class="fixed left-0 top-0 h-screen w-sidebar-width bg-surface-container-low border-r border-outline-variant/30 z-50 flex flex-col justify-between select-none"><div class="flex flex-col"><div class="h-14 px-space-base flex items-center gap-space-sm border-b border-outline-variant/20"><img alt="SpecCraft AI Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1WRapKFeB5KzKJ_0SzPcYeXNh-tlh2UjTvKbPTs_CLZCUyXtILAwipYwKPLyg_WajO20fFO6FLuKZUH2uLPU5OPsIpC9s_erc57DenxX3Kj_EtxnxpnORlGco8SmJuYVpuMTlHWvCmHs41O4DQPk2eYEtUw9B4OhRONnoQ-XntuKdR1gRY4econgAKIo5QJP8i2lBTfCfmrzoyYu3YGINiOBKeR1tF14uq0hU1Rcp7hYzJxqDPtnQYxEhg"/><div class="flex flex-col"><span class="font-headline-sm text-headline-sm tracking-tight text-on-surface font-semibold">SpecCraft AI</span><span class="font-label-sm text-label-sm text-on-surface-variant">PRD STUDIO v2.4</span></div></div><div class="p-space-base border-b border-outline-variant/20"><div class="flex items-center justify-between px-space-sm py-space-xs bg-surface-container rounded-lg border border-outline-variant/40 hover:border-outline transition-colors cursor-pointer"><div class="flex items-center gap-space-sm overflow-hidden"><span class="w-2 h-2 rounded-full bg-tertiary flex-shrink-0"></span><div class="flex flex-col truncate"><span class="font-body-sm text-body-sm font-medium text-on-surface truncate">Acme Workspace</span><span class="font-label-sm text-label-sm text-primary">PRO TIER</span></div></div><span class="material-symbols-outlined text-on-surface-variant text-base">unfold_more</span></div><button class="w-full mt-space-sm h-8 bg-primary text-on-primary font-body-sm text-body-sm font-medium rounded-lg flex items-center justify-center gap-space-xs hover:bg-primary-fixed-dim transition-all shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><span class="material-symbols-outlined text-sm">add</span><span>New Project</span></button></div><nav class="flex flex-col gap-space-2xs p-space-sm" data-active-classes="bg-primary-container text-on-primary-container font-medium rounded-lg shadow-sm"><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="projects" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-lg">dashboard</span><span class="font-body-sm text-body-sm">Projects</span></div></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="recent-conversations" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-lg">forum</span><span class="font-body-sm text-body-sm">Conversations</span></div><span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-tertiary-container text-on-tertiary font-semibold">3 Active</span></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="prd-documents" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-lg">description</span><span class="font-body-sm text-body-sm">PRD Documents</span></div></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="templates-and-frameworks" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-lg">account_tree</span><span class="font-body-sm text-body-sm">Templates & Frameworks</span></div></a><a aria-current="page" class="flex items-center justify-between px-space-sm py-space-xs transition-colors bg-primary-container text-on-primary-container font-medium rounded-lg shadow-sm" data-path="ai-provider-config" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-lg">hub</span><span class="font-body-sm text-body-sm">AI Provider Config</span></div><span class="font-label-sm text-label-sm text-on-surface-variant">9Router</span></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="workspace-settings" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-lg">settings</span><span class="font-body-sm text-body-sm">Workspace Settings</span></div></a></nav></div><div class="p-space-base border-t border-outline-variant/20 flex flex-col gap-space-xs"><div class="flex items-center justify-between px-space-xs text-on-surface-variant font-label-sm text-label-sm"><span>SYSTEM DENSITY</span><span class="font-code-inline text-code-inline text-primary">ULTRA_COMPACT</span></div><div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm px-space-xs"><span>ENGINE LATENCY</span><span class="text-tertiary">42ms</span></div></div></aside><div class="pl-sidebar-width"><header class="fixed top-0 left-sidebar-width right-0 h-14 bg-surface/85 backdrop-blur-xl border-b border-outline-variant/30 z-40 px-space-lg flex items-center justify-between"><div class="flex items-center gap-space-base"><div class="flex items-center gap-space-xs font-body-sm text-body-sm text-on-surface-variant"><span class="hover:text-on-surface cursor-pointer">Acme PRD</span><span class="text-outline">/</span><span class="text-on-surface font-medium">Architect Studio</span></div><div class="relative flex items-center"><span class="material-symbols-outlined absolute left-2.5 text-outline text-base">search</span><input class="h-8 pl-8 pr-3 bg-surface-container-lowest border border-outline-variant/40 rounded-lg font-body-sm text-body-sm text-on-surface placeholder-outline focus:outline-none focus:border-primary w-80 transition-all" placeholder="Search projects, specs, requirements... ⌘K" type="text"/></div></div><div class="flex items-center gap-space-base"><div class="flex items-center gap-space-xs px-2.5 py-1 rounded-full bg-surface-container-high border border-outline-variant/40"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span><span class="font-label-sm text-label-sm text-on-surface font-medium">AI Strategist: Ready</span><span class="font-label-sm text-label-sm text-on-surface-variant">• 9Router</span></div><div class="h-4 w-px bg-outline-variant/40"></div><div class="flex items-center gap-space-sm"><div class="flex flex-col items-end"><span class="font-body-sm text-body-sm font-medium text-on-surface leading-tight">Elena Rostova</span><span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Principal Architect</span></div><img alt="Profile" class="w-8 h-8 rounded-full object-cover border border-outline-variant/50" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDFPOWwf4G-tuXFBYlFtDY3NK-yW2qxjhin9lQKeNAvl-2xhViWo0SyihWjngN7Msz9qdMqbnJ01OL5CbUXIimfpE46FSip_RT3DPHLKjG73FlxQiMciLitGAAvAd_Mj5J8I9LRTOmOwgrhn6ZyrRQGP0c42ek_X-av2c9lQk7iMUuv8-Abt-_iiumHOa48QeA0A0TYAROdNYAdD6bHAeETuJFqaq3_XCz0-jH1OvwVjri3b8MKOEd"/></div></div></header><main class="relative pt-14 bg-surface min-h-screen"><div class="flex flex-col w-full">
+<!-- Subtle Ambient Glow -->
+<div class="absolute top-14 right-1/4 w-96 h-96 bg-primary-container/10 blur-3xl pointer-events-none rounded-full -z-10"></div>
+<div class="absolute top-48 left-1/3 w-80 h-80 bg-tertiary-container/10 blur-3xl pointer-events-none rounded-full -z-10"></div>
+<!-- Main Viewport Content Area -->
+<div class="p-space-lg max-w-7xl mx-auto w-full flex flex-col gap-space-lg">
+<!-- Top Workspace Header Banner & Breadcrumb Context -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs font-label-sm text-label-sm text-outline">
+<span class="text-tertiary font-medium">WORKSPACE</span>
+<span>/</span>
+<span>GOVERNANCE</span>
+<span>/</span>
+<span class="text-on-surface">ROUTING ENGINE</span>
+</div>
+<div class="flex items-center gap-space-sm">
+<span class="flex items-center gap-space-2xs px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+            CLUSTER: US-EAST-1 (DIRECT)
+          </span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm shadow-sm">
+            UPTIME 99.98%
+          </span>
+</div>
+</div>
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-space-base mt-space-xs">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">AI Provider & Gateway Settings</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-space-2xs">
+            Configure LLM connectivity across distributed models. Route primary inference through 9Router or bridge private enterprise clusters.
+          </p>
+</div>
+<div class="flex items-center gap-space-sm self-start md:self-auto">
+<button class="h-8 px-space-md bg-surface-container-high hover:bg-surface-bright text-on-surface font-body-sm text-body-sm font-medium rounded-lg shadow-sm transition-colors flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-base">restore</span>
+<span>Revert Snapshot</span>
+</button>
+<button class="h-8 px-space-md bg-primary hover:bg-primary-fixed-dim text-on-primary font-body-sm text-body-sm font-medium rounded-lg shadow-sm transition-all flex items-center gap-space-xs" id="save-cfg-btn">
+<span class="material-symbols-outlined text-base">save</span>
+<span>Deploy Architecture</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Sub-navigation Segmented Bar -->
+<div class="bg-surface-container-low rounded-xl p-1 shadow-sm overflow-x-auto flex items-center gap-1">
+<button class="px-3.5 py-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-body-sm text-body-sm transition-all whitespace-nowrap">
+        General Settings
+      </button>
+<button class="px-3.5 py-1.5 rounded-lg bg-surface-container-highest text-on-surface font-headline-sm text-headline-sm shadow-sm flex items-center gap-space-xs whitespace-nowrap">
+<span class="material-symbols-outlined text-base text-primary">hub</span>
+        AI Provider Configuration
+      </button>
+<button class="px-3.5 py-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-body-sm text-body-sm transition-all whitespace-nowrap flex items-center gap-space-xs">
+<span>Model Routing & Fallbacks</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">3 RULES</span>
+</button>
+<button class="px-3.5 py-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-body-sm text-body-sm transition-all whitespace-nowrap">
+        Prompt & Strategist Persona Tuning
+      </button>
+<button class="px-3.5 py-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-body-sm text-body-sm transition-all whitespace-nowrap">
+        Team & Workspace
+      </button>
+<button class="px-3.5 py-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-body-sm text-body-sm transition-all whitespace-nowrap">
+        Export & API Keys
+      </button>
+</div>
+<!-- Section A: Provider Selector Cards Grid -->
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-outline tracking-wider uppercase">Active Ingestion Gateway</span>
+<span class="font-label-sm text-label-sm text-tertiary">DYNAMIC FAILOVER: ENABLED</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-base">
+<!-- Gateway Card 1 (Active) -->
+<div class="bg-surface-container rounded-xl p-space-base shadow-sm relative overflow-hidden cursor-pointer group transition-all ring-1 ring-primary/40">
+<div class="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-bl-full pointer-events-none"></div>
+<div class="flex items-start justify-between">
+<div class="w-9 h-9 rounded-lg bg-primary/20 text-primary flex items-center justify-center shadow-inner">
+<span class="material-symbols-outlined text-lg">alt_route</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-tertiary font-label-sm text-label-sm flex items-center gap-1 shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-ping"></span>
+              Connected (142ms)
+            </span>
+</div>
+<div class="mt-space-md">
+<div class="flex items-center gap-1.5">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold">9Router Universal Gateway</h3>
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-space-xs">
+              Unified multi-tenant routing layer for Claude 3.5 Sonnet, GPT-4o, and DeepSeek with intelligent automated load balancing.
+            </p>
+</div>
+<div class="mt-space-base pt-space-xs flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">PRIMARY ENDPOINT</span>
+<span class="font-label-sm text-label-sm text-primary font-medium flex items-center gap-0.5">
+              ACTIVE <span class="material-symbols-outlined text-sm">radio_button_checked</span>
+</span>
+</div>
+</div>
+<!-- Gateway Card 2 -->
+<div class="bg-surface-container-low hover:bg-surface-container rounded-xl p-space-base shadow-sm relative cursor-pointer group transition-all">
+<div class="flex items-start justify-between">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high text-on-surface-variant group-hover:text-on-surface flex items-center justify-center">
+<span class="material-symbols-outlined text-lg">api</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">
+              Standby
+            </span>
+</div>
+<div class="mt-space-md">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold">Custom OpenAI Compatible</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-space-xs">
+              Connect raw standard endpoints directly: OpenAI direct, Anthropic, Ollama local instance, Groq, or vLLM clusters.
+            </p>
+</div>
+<div class="mt-space-base pt-space-xs flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">MANUAL OVERRIDE</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-0.5">
+              CONFIGURED <span class="material-symbols-outlined text-sm">radio_button_unchecked</span>
+</span>
+</div>
+</div>
+<!-- Gateway Card 3 -->
+<div class="bg-surface-container-low hover:bg-surface-container rounded-xl p-space-base shadow-sm relative cursor-pointer group transition-all">
+<div class="flex items-start justify-between">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high text-on-surface-variant group-hover:text-on-surface flex items-center justify-center">
+<span class="material-symbols-outlined text-lg">shield_lock</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-secondary-fixed-dim font-label-sm text-label-sm">
+              Air-Gapped
+            </span>
+</div>
+<div class="mt-space-md">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold">Self-Hosted Private Gateway</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-space-xs">
+              Enterprise dedicated VPC endpoint ensuring zero external logging, compliance fencing, and localized telemetry storage.
+            </p>
+</div>
+<div class="mt-space-base pt-space-xs flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">SECURE VAULT</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-0.5">
+              OFFLINE <span class="material-symbols-outlined text-sm">radio_button_unchecked</span>
+</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Section B & C Layout: Split Parameters Form + Diagnostics Inspector -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">
+<!-- Section B: Provider Connection Parameters Form (8 Cols) -->
+<div class="lg:col-span-8 flex flex-col gap-space-base bg-surface-container-low rounded-xl p-space-lg shadow-sm">
+<div class="flex items-center justify-between pb-space-xs">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface font-medium">Gateway Topology Parameters</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Active node routes specification queries through high-throughput reasoning models.</p>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary bg-surface-container px-2 py-1 rounded-md">PROTOCOL v2.4.1</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-base">
+<!-- Provider Name -->
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-sm text-label-sm text-on-surface-variant tracking-wider uppercase">Provider Cluster Label</label>
+<input class="h-9 px-3 bg-surface-container-lowest text-on-surface font-body-sm text-body-sm rounded-lg shadow-inner focus:outline-none focus:ring-1 focus:ring-primary transition-all" type="text" value="9Router Production Gateway"/>
+</div>
+<!-- Base URL -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex justify-between items-center">
+<label class="font-label-sm text-label-sm text-on-surface-variant tracking-wider uppercase">Base Endpoint URL</label>
+<span class="font-label-sm text-label-sm text-tertiary flex items-center gap-0.5">
+<span class="material-symbols-outlined text-xs">check_circle</span> Validated
+              </span>
+</div>
+<div class="relative">
+<input class="w-full h-9 pl-3 pr-8 bg-surface-container-lowest text-on-surface font-code-inline text-code-inline rounded-lg shadow-inner focus:outline-none focus:ring-1 focus:ring-primary transition-all" type="text" value="https://gateway.9router.ai/v1"/>
+<span class="material-symbols-outlined absolute right-2.5 top-2 text-outline text-base pointer-events-none">lock</span>
+</div>
+</div>
+</div>
+<!-- API Key Field -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex justify-between items-center">
+<label class="font-label-sm text-label-sm text-on-surface-variant tracking-wider uppercase">Secret Gateway Token (Encrypted at Rest)</label>
+<span class="font-label-sm text-label-sm text-outline">EXPIRATION: IN 84 DAYS</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<div class="relative flex-1">
+<input class="w-full h-9 pl-3 pr-10 bg-surface-container-lowest text-on-surface font-code-inline text-code-inline rounded-lg shadow-inner focus:outline-none focus:ring-1 focus:ring-primary transition-all" id="api-key-input" type="password" value="sk-9r-919283748291039485720192837438f9"/>
+<button class="absolute right-2 top-1.5 p-1 text-on-surface-variant hover:text-on-surface rounded transition-colors" id="toggle-key-visibility" title="Toggle visibility">
+<span class="material-symbols-outlined text-base">visibility</span>
+</button>
+</div>
+<button class="h-9 px-space-sm bg-surface-container-high hover:bg-surface-bright text-on-surface font-body-sm text-body-sm rounded-lg flex items-center gap-1 shadow-sm transition-colors whitespace-nowrap">
+<span class="material-symbols-outlined text-sm">cached</span>
+<span>Rotate key</span>
+</button>
+</div>
+</div>
+<!-- Dynamic Model Selection Dropdown -->
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-sm text-label-sm text-on-surface-variant tracking-wider uppercase">Primary Architect Model</label>
+<div class="relative">
+<select class="w-full h-10 px-3 pr-9 bg-surface-container-lowest text-on-surface font-body-sm text-body-sm rounded-lg shadow-inner focus:outline-none focus:ring-1 focus:ring-primary appearance-none cursor-pointer">
+<option selected="" value="claude-3-5-sonnet">claude-3-5-sonnet-20241022 (Recommended for PRD Reasoning & Complex Schemas)</option>
+<option value="gpt-4o">gpt-4o-2024-08-06 (High Concurrency & Multimodal Traceability)</option>
+<option value="deepseek-chat-v3">deepseek-chat-v3 (Ultra Low Latency Specification Drafter)</option>
+<option value="claude-3-opus">claude-3-opus-20240229 (Deep Theoretical Architecture)</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-2.5 text-on-surface-variant pointer-events-none text-base">expand_more</span>
+</div>
+</div>
+<!-- Inference Tuning Sliders (Bento Sub-card) -->
+<div class="bg-surface-container p-space-base rounded-lg flex flex-col gap-space-md shadow-sm">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-on-surface">Execution Hyperparameters</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">TARGET: PREDICTABLE CODIFIED PRDs</span>
+</div>
+<!-- Temperature -->
+<div class="flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-space-2xs">
+<span class="font-body-sm text-body-sm text-on-surface font-medium">Sampling Temperature</span>
+<span class="font-label-sm text-label-sm text-outline-variant">•</span>
+<span class="font-label-sm text-label-sm text-tertiary">0.2 - Precision & Deterministic Architecture</span>
+</div>
+<span class="font-code-inline text-code-inline text-on-surface px-1.5 py-0.5 rounded bg-surface-container-lowest">0.20</span>
+</div>
+<input class="w-full accent-primary h-1.5 bg-surface-container-lowest rounded-lg cursor-pointer" max="1" min="0" step="0.05" type="range" value="0.2"/>
+<div class="flex justify-between text-outline font-label-sm text-label-sm">
+<span>0.0 (Strict / Code specs)</span>
+<span>0.5 (Balanced)</span>
+<span>1.0 (Ideation / Brainstorm)</span>
+</div>
+</div>
+<!-- Max Tokens -->
+<div class="flex flex-col gap-space-2xs pt-space-xs">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-space-2xs">
+<span class="font-body-sm text-body-sm text-on-surface font-medium">Max Context Generation Output</span>
+<span class="font-label-sm text-label-sm text-outline-variant">•</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Standard PRD full section budget</span>
+</div>
+<span class="font-code-inline text-code-inline text-on-surface px-1.5 py-0.5 rounded bg-surface-container-lowest">8,192 tokens</span>
+</div>
+<input class="w-full accent-primary h-1.5 bg-surface-container-lowest rounded-lg cursor-pointer" max="16384" min="1024" step="1024" type="range" value="8192"/>
+<div class="flex justify-between text-outline font-label-sm text-label-sm">
+<span>1k tokens</span>
+<span>8k (Default)</span>
+<span>16k (Long-form Spec)</span>
+</div>
+</div>
+</div>
+<!-- Inline Spec Schema Guard Banner -->
+<div class="flex items-center gap-space-base p-space-sm rounded-lg bg-surface-container-high/60">
+<span class="material-symbols-outlined text-tertiary text-xl">verified_user</span>
+<div class="flex flex-col flex-1">
+<span class="font-body-sm text-body-sm text-on-surface font-medium">Structured Output Enforcement (JSON Schema)</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Strict markdown schema validation enabled. All generated FRs conform to IEEE 830 standards.</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-tertiary-container text-on-tertiary font-label-sm text-label-sm font-semibold">ACTIVE</span>
+</div>
+</div>
+<!-- Section C: Connection Status Diagnostics Panel (4 Cols) -->
+<div class="lg:col-span-4 flex flex-col gap-space-base">
+<!-- Live Diagnostics Card -->
+<div class="bg-surface-container-low rounded-xl p-space-base shadow-sm flex flex-col gap-space-base">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold">Connection Diagnostics</h3>
+</div>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-surface-container-high text-tertiary">HTTP 200 OK</span>
+</div>
+<!-- Status Box -->
+<div class="bg-surface-container p-space-sm rounded-lg flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline uppercase">Gateway Handshake</span>
+<span class="font-code-inline text-code-inline text-tertiary">Active Keep-Alive</span>
+</div>
+<div class="font-headline-md text-headline-md text-on-surface font-medium flex items-baseline gap-2">
+<span>Healthy</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">TLS 1.3 mTLS Verified</span>
+</div>
+</div>
+<!-- Latency Graph / Sparkline Simulation -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex justify-between items-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant tracking-wider uppercase">Inference Ping Timeline</span>
+<span class="font-code-inline text-code-inline text-primary">AVG: 134.6ms</span>
+</div>
+<!-- Latency Inline SVG Data Viz -->
+<div class="bg-surface-container-lowest p-2 rounded-lg flex flex-col gap-2">
+<svg class="w-full h-16 text-primary" fill="none" viewbox="0 0 240 60">
+<!-- Grid guide lines -->
+<line stroke="currentColor" stroke-dasharray="2 2" stroke-opacity="0.1" x1="0" x2="240" y1="15" y2="15"></line>
+<line stroke="currentColor" stroke-dasharray="2 2" stroke-opacity="0.1" x1="0" x2="240" y1="35" y2="35"></line>
+<!-- Latency Sparkline area -->
+<path d="M0 45 L30 40 L60 48 L90 32 L120 38 L150 22 L180 25 L210 18 L240 20 L240 60 L0 60 Z" fill="currentColor" fill-opacity="0.12"></path>
+<path d="M0 45 L30 40 L60 48 L90 32 L120 38 L150 22 L180 25 L210 18 L240 20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<!-- Ping Dots -->
+<circle cx="150" cy="22" fill="#89ceff" r="3"></circle>
+<circle cx="180" cy="25" fill="#c0c1ff" r="3"></circle>
+<circle cx="210" cy="18" fill="#89ceff" r="3"></circle>
+<circle cx="240" cy="20" fill="#89ceff" r="3.5"></circle>
+</svg>
+<!-- Ping Sample Badges -->
+<div class="flex items-center justify-between text-outline font-code-inline text-code-inline px-1">
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-on-surface">128ms</span>
+<span class="material-symbols-outlined text-xs">arrow_forward</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-on-surface">134ms</span>
+<span class="material-symbols-outlined text-xs">arrow_forward</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-tertiary font-semibold">142ms</span>
+</div>
+</div>
+</div>
+<!-- Rate Limiting Metrics -->
+<div class="flex flex-col gap-space-2xs">
+<div class="flex justify-between items-center font-label-sm text-label-sm">
+<span class="text-on-surface-variant uppercase">Token Throughput (TPM)</span>
+<span class="font-code-inline text-on-surface">42,500 / 100,000</span>
+</div>
+<!-- Custom Progress Bar -->
+<div class="w-full h-2 rounded-full bg-surface-container-lowest overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 42.5%;"></div>
+</div>
+<div class="flex justify-between font-label-sm text-label-sm text-outline">
+<span>Current Load: 42.5%</span>
+<span class="text-tertiary">Reset in 18m</span>
+</div>
+</div>
+<!-- Actions -->
+<div class="flex flex-col gap-space-xs pt-space-xs">
+<button class="w-full h-9 bg-surface-container-high hover:bg-surface-bright text-on-surface font-body-sm text-body-sm font-medium rounded-lg flex items-center justify-center gap-space-xs shadow-sm transition-colors" id="test-connection-btn">
+<span class="material-symbols-outlined text-base text-tertiary">network_check</span>
+<span>Execute Probe Test</span>
+</button>
+<div class="flex items-center justify-between text-outline font-label-sm text-label-sm px-1">
+<span>LAST TEST: 4 SEC AGO</span>
+<span class="text-on-surface-variant">0 PACKETS DROPPED</span>
+</div>
+</div>
+</div>
+<!-- Fallback Router Card -->
+<div class="bg-surface-container-low rounded-xl p-space-base shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs text-on-surface font-body-sm text-body-sm font-medium">
+<span class="material-symbols-outlined text-base text-primary">swap_calls</span>
+<span>Cascading Fallbacks</span>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary">3 Tiers</span>
+</div>
+<div class="space-y-1.5 font-label-sm text-label-sm">
+<div class="p-2 rounded bg-surface-container flex items-center justify-between text-on-surface">
+<span class="font-mono">1. Sonnet 3.5 (Primary)</span>
+<span class="text-tertiary">ACTIVE</span>
+</div>
+<div class="p-2 rounded bg-surface-container flex items-center justify-between text-on-surface-variant">
+<span class="font-mono">2. GPT-4o (Fallback A)</span>
+<span class="text-outline">STANDBY</span>
+</div>
+<div class="p-2 rounded bg-surface-container flex items-center justify-between text-on-surface-variant">
+<span class="font-mono">3. DeepSeek-v3 (Fallback B)</span>
+<span class="text-outline">STANDBY</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 4: Global Command Palette (⌘K) Interactive Modal Overlay Preview -->
+<div class="mt-space-base bg-surface-container-low rounded-xl p-space-base shadow-lg">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm pb-space-sm mb-space-base">
+<div class="flex items-center gap-space-sm">
+<div class="w-7 h-7 rounded-md bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-xs">
+            ⌘K
+          </div>
+<div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface font-medium">Global Command Gateway Modal</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Simulated floating HUD for rapid specification switching and model re-binding</p>
+</div>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="px-2 py-0.5 rounded bg-surface-container text-outline font-label-sm text-label-sm">PRESS ESC TO CLOSE</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-tertiary font-label-sm text-label-sm">HOTKEY INDEXED</span>
+</div>
+</div>
+<!-- Centered Spotlight Mockup -->
+<div class="max-w-2xl mx-auto bg-surface-container-highest rounded-xl shadow-2xl p-space-sm flex flex-col gap-space-sm">
+<!-- Input Row -->
+<div class="flex items-center gap-space-sm px-space-sm py-2 bg-surface-container-lowest rounded-lg">
+<span class="material-symbols-outlined text-primary text-xl">search</span>
+<input autofocus="" class="bg-transparent border-none outline-none flex-1 font-body-md text-body-md text-on-surface placeholder-outline" placeholder="Type a command, model id, or PRD requirement (e.g., 'Change Model')..." type="text" value="Change Model"/>
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">ESC</span>
+</div>
+<!-- Result List Items -->
+<div class="flex flex-col gap-1">
+<div class="px-space-sm py-1 font-label-sm text-label-sm text-outline uppercase tracking-wider">Suggested Architect Actions</div>
+<!-- Item 1 (Selected) -->
+<div class="flex items-center justify-between px-space-sm py-2 rounded-lg bg-primary text-on-primary cursor-pointer transition-colors">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-base">psychology</span>
+<span class="font-body-sm text-body-sm font-medium">Change Active Model to GPT-4o</span>
+</div>
+<div class="flex items-center gap-space-xs font-label-sm text-label-sm text-on-primary/80">
+<span class="bg-on-primary/10 px-1.5 py-0.5 rounded">LLM ROUTE</span>
+<span class="material-symbols-outlined text-sm">keyboard_return</span>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center justify-between px-space-sm py-2 rounded-lg hover:bg-surface-container text-on-surface cursor-pointer transition-colors">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-base text-tertiary">manage_search</span>
+<span class="font-body-sm text-body-sm">Search FR-002 Deload Engine</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">PRD SPEC</span>
+</div>
+<!-- Item 3 -->
+<div class="flex items-center justify-between px-space-sm py-2 rounded-lg hover:bg-surface-container text-on-surface cursor-pointer transition-colors">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-base text-primary">folder_open</span>
+<span class="font-body-sm text-body-sm">Switch Project: FitPulse Health OS</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">WORKSPACE</span>
+</div>
+<!-- Item 4 -->
+<div class="flex items-center justify-between px-space-sm py-2 rounded-lg hover:bg-surface-container text-on-surface cursor-pointer transition-colors">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-base text-on-surface-variant">download</span>
+<span class="font-body-sm text-body-sm">Export FitPulse PRD as Markdown / Confluence</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">EXPORT</span>
+</div>
+</div>
+<!-- Footer bar inside modal -->
+<div class="pt-space-xs px-space-sm flex items-center justify-between font-label-sm text-label-sm text-outline">
+<div class="flex items-center gap-space-sm">
+<span>Navigate: <span class="text-on-surface">↑↓</span></span>
+<span>Select: <span class="text-on-surface">↵</span></span>
+</div>
+<span>SpecCraft AI Command Engine v2.4</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+  (function() {
+    // Interactive Password Field Toggle
+    const toggleBtn = document.getElementById('toggle-key-visibility');
+    const keyInput = document.getElementById('api-key-input');
+    if (toggleBtn && keyInput) {
+      toggleBtn.addEventListener('click', function() {
+        const isPassword = keyInput.getAttribute('type') === 'password';
+        keyInput.setAttribute('type', isPassword ? 'text' : 'password');
+        const icon = toggleBtn.querySelector('span');
+        if (icon) {
+          icon.textContent = isPassword ? 'visibility_off' : 'visibility';
+        }
+      });
+    }
+
+    // Ping Test Button Simulation
+    const testBtn = document.getElementById('test-connection-btn');
+    if (testBtn) {
+      testBtn.addEventListener('click', function() {
+        const originalHtml = testBtn.innerHTML;
+        testBtn.disabled = true;
+        testBtn.innerHTML = '<span class="material-symbols-outlined text-base text-tertiary animate-spin">refresh</span><span>Handshaking 9Router...</span>';
+        setTimeout(() => {
+          testBtn.innerHTML = '<span class="material-symbols-outlined text-base text-emerald-400">check</span><span>139ms - Verified</span>';
+          setTimeout(() => {
+            testBtn.innerHTML = originalHtml;
+            testBtn.disabled = false;
+          }, 1800);
+        }, 600);
+      });
+    }
+
+    // Deploy Architecture confirmation
+    const saveBtn = document.getElementById('save-cfg-btn');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', function() {
+        saveBtn.classList.add('bg-tertiary', 'text-on-tertiary');
+        saveBtn.innerHTML = '<span class="material-symbols-outlined text-base">done_all</span><span>Deployed Live</span>';
+        setTimeout(() => {
+          saveBtn.classList.remove('bg-tertiary', 'text-on-tertiary');
+          saveBtn.innerHTML = '<span class="material-symbols-outlined text-base">save</span><span>Deploy Architecture</span>';
+        }, 2000);
+      });
+    }
+  })();
+</script></main></div></body></html>
