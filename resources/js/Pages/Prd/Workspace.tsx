@@ -4,16 +4,19 @@ import { AppShell } from '@/Components/AppShell';
 import { Button } from '@/Components/Button';
 import { StatusPill } from '@/Components/StatusPill';
 import { cn } from '@/lib';
+import { Markdown } from '@/Components/Markdown';
 import {
     AlertTriangle,
     ArrowLeft,
     CheckCircle2,
+    Download,
     GitBranch,
     Loader2,
     Pencil,
     Save,
     ShieldCheck,
     Sparkles,
+    Trash2,
     Wand2,
     X,
 } from 'lucide-react';
@@ -265,6 +268,58 @@ export default function PrdWorkspace({ auth, sidebar, project, prd, versions }: 
         }
     };
 
+    const deleteSection = async (sectionId: number) => {
+        if (!window.confirm('Hapus section ini? (versi tersimpan tetap ada di Version History)')) return;
+
+        try {
+            const res = await fetch(
+                route('projects.prd.sections.destroy', { project: project.id, section: sectionId }),
+                { method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrf() } },
+            );
+
+            if (!res.ok) throw new Error();
+
+            setSections((prev) => prev.filter((s) => s.id !== sectionId));
+
+            if (selectedId === sectionId) {
+                setSelectedId(sections.find((s) => s.id !== sectionId)?.id ?? null);
+            }
+
+            flashToast('Section dihapus.');
+        } catch {
+            setAiError('Gagal menghapus section.');
+        }
+    };
+
+    const moveSection = async (sectionId: number, direction: 'up' | 'down') => {
+        const ordered = [...sections].sort((a, b) => a.order - b.order);
+        const idx = ordered.findIndex((s) => s.id === sectionId);
+        const swapWith = direction === 'up' ? idx - 1 : idx + 1;
+
+        if (swapWith < 0 || swapWith >= ordered.length) return;
+
+        const reordered = [...ordered];
+        [reordered[idx], reordered[swapWith]] = [reordered[swapWith], reordered[idx]];
+        const newSections = reordered.map((s, i) => ({ ...s, order: i }));
+
+        setSections(newSections); // optimistic
+
+        try {
+            const res = await fetch(route('projects.prd.sections.reorder', { project: project.id }), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf() },
+                body: JSON.stringify({ order: newSections.map((s) => s.id) }),
+            });
+
+            if (!res.ok) throw new Error();
+
+            flashToast('Urutan section diperbarui.');
+        } catch {
+            setSections(sections); // rollback
+            setAiError('Gagal mengubah urutan.');
+        }
+    };
+
     const statusTone = (sidebar.statuses[project.status]?.tone ?? 'muted') as 'ok';
     const statusLabel = sidebar.statuses[project.status]?.label ?? project.status;
     const isApproved = project.status === 'approved';
@@ -291,26 +346,53 @@ export default function PrdWorkspace({ auth, sidebar, project, prd, versions }: 
 
                     <div className="flex-1 space-y-0.5 p-2">
                         {sections.map((s) => (
-                            <button
+                            <div
                                 key={s.id}
-                                type="button"
-                                onClick={() => {
-                                    setSelectedId(s.id);
-                                    setEditing(false);
-                                    setProposal(null);
-                                }}
                                 className={cn(
-                                    'flex w-full items-center justify-between gap-2 rounded px-2.5 py-2 text-left text-sm transition-colors',
-                                    selectedId === s.id
-                                        ? 'bg-surface-3 text-ink'
-                                        : 'text-ink-3 hover:bg-surface-2 hover:text-ink',
+                                    'group/outline flex items-center gap-0.5 rounded',
+                                    selectedId === s.id && 'bg-surface-3',
                                 )}
                             >
-                                <span className="truncate">{s.title}</span>
-                                <span className="font-mono text-[10px] text-ink-ghost">
-                                    {String(s.order + 1).padStart(2, '0')}
-                                </span>
-                            </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSelectedId(s.id);
+                                        setEditing(false);
+                                        setProposal(null);
+                                    }}
+                                    className={cn(
+                                        'flex min-w-0 flex-1 items-center justify-between gap-2 rounded px-2.5 py-2 text-left text-sm transition-colors',
+                                        selectedId === s.id
+                                            ? 'text-ink'
+                                            : 'text-ink-3 hover:bg-surface-2 hover:text-ink',
+                                    )}
+                                >
+                                    <span className="truncate">{s.title}</span>
+                                    <span className="font-mono text-[10px] text-ink-ghost">
+                                        {String(s.order + 1).padStart(2, '0')}
+                                    </span>
+                                </button>
+                                <div className="mr-1 hidden flex-col group-hover/outline:flex">
+                                    <button
+                                        type="button"
+                                        onClick={() => moveSection(s.id, 'up')}
+                                        disabled={s.order === 0}
+                                        title="Pindah ke atas"
+                                        className="rounded px-1 text-[9px] leading-none text-ink-3 hover:text-ink disabled:opacity-30"
+                                    >
+                                        ▲
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => moveSection(s.id, 'down')}
+                                        disabled={s.order === sections.length - 1}
+                                        title="Pindah ke bawah"
+                                        className="rounded px-1 text-[9px] leading-none text-ink-3 hover:text-ink disabled:opacity-30"
+                                    >
+                                        ▼
+                                    </button>
+                                </div>
+                            </div>
                         ))}
                     </div>
 
@@ -334,22 +416,78 @@ export default function PrdWorkspace({ auth, sidebar, project, prd, versions }: 
                 </aside>
 
                 {/* Main editor */}
-                <div className="flex min-w-0 flex-1 flex-col">
-                    <div className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-3 md:px-6">
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                    <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-line bg-surface px-3 py-2.5 md:px-6 md:py-3">
                         <div className="min-w-0">
+                            <a
+                                href={`/projects/${project.id}`}
+                                className="mb-1 flex items-center gap-1 font-mono text-[11px] text-ink-3 hover:text-ink md:hidden"
+                            >
+                                <ArrowLeft size={12} />
+                                {project.name}
+                            </a>
                             <div className="truncate text-sm font-semibold text-ink">{title}</div>
                             <div className="mt-0.5 font-mono text-[11px] text-ink-3">
                                 {sections.length} sections · {versionList.length} versions
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
+
+                        {/* Mobile section nav */}
+                        <select
+                            value={selectedId ?? ''}
+                            onChange={(e) => {
+                                setSelectedId(Number(e.target.value));
+                                setEditing(false);
+                                setProposal(null);
+                            }}
+                            className="h-8 max-w-[60%] rounded border border-line bg-canvas px-2 text-xs text-ink outline-none focus:border-accent md:hidden"
+                        >
+                            {sections.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                    {String(s.order + 1).padStart(2, '0')}. {s.title}
+                                </option>
+                            ))}
+                        </select>
+
+                        <div className="flex items-center gap-1.5 md:gap-2">
+                            {/* Mobile-only actions */}
+                            <Button
+                                size="sm"
+                                className="md:hidden"
+                                onClick={saveVersion}
+                                disabled={savingVersion}
+                                title="Save Version"
+                            >
+                                <GitBranch size={13} />
+                            </Button>
+                            {!isApproved && (
+                                <Button
+                                    size="sm"
+                                    variant="primary"
+                                    className="md:hidden"
+                                    onClick={approvePrd}
+                                    title="Approve PRD"
+                                >
+                                    <ShieldCheck size={13} />
+                                </Button>
+                            )}
+                            <a
+                                href={route('projects.prd.export', { project: project.id })}
+                                className="hidden sm:block"
+                                title="Export .md"
+                            >
+                                <Button size="sm">
+                                    <Download size={13} />
+                                    Export
+                                </Button>
+                            </a>
                             <Button size="sm" onClick={runReview} disabled={reviewBusy}>
                                 {reviewBusy ? (
                                     <Loader2 size={13} className="animate-spin" />
                                 ) : (
                                     <AlertTriangle size={13} />
                                 )}
-                                AI Review
+                                <span className="hidden sm:inline">AI Review</span>
                             </Button>
                         </div>
                     </div>
@@ -368,7 +506,7 @@ export default function PrdWorkspace({ auth, sidebar, project, prd, versions }: 
                         </div>
                     )}
 
-                    <div className="flex-1 overflow-y-auto px-4 py-5 md:px-6">
+                    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-6">
                         <div className="mx-auto max-w-3xl space-y-4">
                             {review && (
                                 <div className="rounded-lg border border-line bg-surface-2 p-4">
@@ -430,16 +568,26 @@ export default function PrdWorkspace({ auth, sidebar, project, prd, versions }: 
                                         </h2>
                                         <div className="flex items-center gap-1.5">
                                             {!editing ? (
-                                                <Button
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        setEditContent(selected.content);
-                                                        setEditing(true);
-                                                    }}
-                                                >
-                                                    <Pencil size={13} />
-                                                    Edit
-                                                </Button>
+                                                <>
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setEditContent(selected.content);
+                                                            setEditing(true);
+                                                        }}
+                                                    >
+                                                        <Pencil size={13} />
+                                                        <span className="hidden sm:inline">Edit</span>
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="danger"
+                                                        onClick={() => deleteSection(selected.id)}
+                                                        title="Hapus section"
+                                                    >
+                                                        <Trash2 size={13} />
+                                                    </Button>
+                                                </>
                                             ) : (
                                                 <>
                                                     <Button size="sm" onClick={() => setEditing(false)}>
@@ -472,8 +620,8 @@ export default function PrdWorkspace({ auth, sidebar, project, prd, versions }: 
                                             className="w-full resize-y rounded-lg border border-line bg-canvas px-4 py-3 font-mono text-sm leading-relaxed text-ink outline-none focus:border-accent focus:shadow-[0_0_0_1px_#6366f1]"
                                         />
                                     ) : (
-                                        <div className="whitespace-pre-wrap rounded-lg border border-line bg-surface px-4 py-3 text-sm leading-relaxed text-ink-2">
-                                            {selected.content}
+                                        <div className="rounded-lg border border-line bg-surface px-4 py-3">
+                                            <Markdown content={selected.content} />
                                         </div>
                                     )}
 
@@ -489,13 +637,14 @@ export default function PrdWorkspace({ auth, sidebar, project, prd, versions }: 
                                                 size="sm"
                                                 onClick={() => runAiAction(a.key)}
                                                 disabled={aiBusy !== null}
+                                                title={a.label}
                                             >
                                                 {aiBusy === a.key ? (
                                                     <Loader2 size={12} className="animate-spin" />
                                                 ) : (
                                                     <Wand2 size={12} />
                                                 )}
-                                                {a.label}
+                                                <span className="hidden sm:inline">{a.label}</span>
                                             </Button>
                                         ))}
                                     </div>
@@ -533,8 +682,8 @@ export default function PrdWorkspace({ auth, sidebar, project, prd, versions }: 
                                                         <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-risk">
                                                             Current
                                                         </div>
-                                                        <div className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded border border-line bg-surface-2 p-3 text-xs leading-relaxed text-ink-3">
-                                                            {proposal.original}
+                                                        <div className="max-h-72 overflow-y-auto rounded border border-line bg-surface-2 p-3 text-xs leading-relaxed text-ink-3">
+                                                            <Markdown content={proposal.original} compact />
                                                         </div>
                                                     </div>
                                                 )}
@@ -542,10 +691,37 @@ export default function PrdWorkspace({ auth, sidebar, project, prd, versions }: 
                                                     <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-ok">
                                                         Proposed
                                                     </div>
-                                                    <div className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] p-3 text-xs leading-relaxed text-ink">
-                                                        {proposal.content}
+                                                    <div className="max-h-72 overflow-y-auto rounded border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] p-3 text-xs leading-relaxed text-ink">
+                                                        <Markdown content={proposal.content} compact />
                                                     </div>
                                                 </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Mobile version history */}
+                                    {versionList.length > 0 && (
+                                        <div className="rounded-lg border border-line bg-surface-2 p-3 xl:hidden">
+                                            <div className="mb-2 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-ink-3">
+                                                <GitBranch size={12} />
+                                                Version History
+                                            </div>
+                                            <div className="flex gap-2 overflow-x-auto pb-1">
+                                                {versionList.map((v) => (
+                                                    <button
+                                                        key={v.id}
+                                                        type="button"
+                                                        onClick={() => loadVersion(v.id)}
+                                                        className="shrink-0 rounded border border-line bg-surface px-3 py-2 text-left transition-colors hover:border-line-strong"
+                                                    >
+                                                        <div className="font-mono text-xs font-medium text-accent">
+                                                            {v.version}
+                                                        </div>
+                                                        <div className="font-mono text-[10px] text-ink-ghost">
+                                                            {v.section_count} sections
+                                                        </div>
+                                                    </button>
+                                                ))}
                                             </div>
                                         </div>
                                     )}

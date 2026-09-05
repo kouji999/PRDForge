@@ -32,9 +32,9 @@ Route::middleware('auth')->group(function () {
 
     // Conversation (SSE + fallback)
     Route::get('projects/{project}/conversations/{conversation}/messages', [ConversationController::class, 'messages'])->name('conversations.messages');
-    Route::post('projects/{project}/conversations/{conversation}/send', [ConversationController::class, 'send'])->name('conversations.send');
-    Route::post('projects/{project}/conversations/{conversation}/stream', [ConversationController::class, 'stream'])->name('conversations.stream');
-    Route::post('projects/{project}/conversations/{conversation}/extract', [ConversationController::class, 'extract'])->name('conversations.extract');
+    Route::post('projects/{project}/conversations/{conversation}/send', [ConversationController::class, 'send'])->middleware('throttle.ai:chat')->name('conversations.send');
+    Route::post('projects/{project}/conversations/{conversation}/stream', [ConversationController::class, 'stream'])->middleware('throttle.ai:chat')->name('conversations.stream');
+    Route::post('projects/{project}/conversations/{conversation}/extract', [ConversationController::class, 'extract'])->middleware('throttle.ai:extract')->name('conversations.extract');
 
     // Project context + requirements
     Route::get('projects/{project}/context', [ProjectContextController::class, 'show'])->name('projects.context.show');
@@ -46,15 +46,16 @@ Route::middleware('auth')->group(function () {
 
     // PRD workspace
     Route::get('projects/{project}/prd', [PrdController::class, 'show'])->name('projects.prd.show');
-    Route::post('projects/{project}/prd/generate', [PrdController::class, 'generate'])->name('projects.prd.generate');
+    Route::post('projects/{project}/prd/generate', [PrdController::class, 'generate'])->middleware('throttle.ai:generate')->name('projects.prd.generate');
     Route::get('projects/{project}/prd/status', [PrdController::class, 'status'])->name('projects.prd.status');
+    Route::get('projects/{project}/prd/export', [PrdController::class, 'export'])->name('projects.prd.export');
     Route::put('projects/{project}/prd', [PrdController::class, 'update'])->name('projects.prd.update');
     Route::put('projects/{project}/prd/sections/order', [PrdController::class, 'reorderSections'])->name('projects.prd.sections.reorder');
     Route::put('projects/{project}/prd/sections/{section}', [PrdController::class, 'updateSection'])->name('projects.prd.sections.update');
     Route::delete('projects/{project}/prd/sections/{section}', [PrdController::class, 'destroySection'])->name('projects.prd.sections.destroy');
-    Route::post('projects/{project}/prd/sections/{section}/ai', [PrdController::class, 'sectionAction'])->name('projects.prd.sections.ai');
+    Route::post('projects/{project}/prd/sections/{section}/ai', [PrdController::class, 'sectionAction'])->middleware('throttle.ai:action')->name('projects.prd.sections.ai');
     Route::post('projects/{project}/prd/sections/{section}/apply', [PrdController::class, 'applySectionProposal'])->name('projects.prd.sections.apply');
-    Route::post('projects/{project}/prd/review', [PrdController::class, 'review'])->name('projects.prd.review');
+    Route::post('projects/{project}/prd/review', [PrdController::class, 'review'])->middleware('throttle.ai:review')->name('projects.prd.review');
     Route::post('projects/{project}/prd/versions', [PrdController::class, 'storeVersion'])->name('projects.prd.versions.store');
     Route::get('projects/{project}/prd/versions/{versionId}', [PrdController::class, 'showVersion'])->name('projects.prd.versions.show');
 
@@ -64,7 +65,7 @@ Route::middleware('auth')->group(function () {
     Route::post('ai/providers', [AiProviderController::class, 'store'])->name('ai.providers.store');
     Route::put('ai/providers/{provider}', [AiProviderController::class, 'update'])->name('ai.providers.update');
     Route::delete('ai/providers/{provider}', [AiProviderController::class, 'destroy'])->name('ai.providers.destroy');
-    Route::post('ai/providers/{provider}/test', [AiProviderController::class, 'test'])->name('ai.providers.test');
-    Route::post('ai/providers/test', [AiProviderController::class, 'test'])->name('ai.providers.test-unsaved');
+    Route::post('ai/providers/{provider}/test', [AiProviderController::class, 'test'])->middleware('throttle.ai:test')->name('ai.providers.test');
+    Route::post('ai/providers/test', [AiProviderController::class, 'test'])->middleware('throttle.ai:test')->name('ai.providers.test-unsaved');
     Route::get('ai/providers/{provider}/models', [AiProviderController::class, 'models'])->name('ai.providers.models');
 });

@@ -15,8 +15,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PrdController extends Controller
 {
@@ -91,6 +93,37 @@ class PrdController extends Controller
     private function readinessReady(Project $project): bool
     {
         return app(ReadinessEngine::class)->evaluate($project)->ready;
+    }
+
+    /** Export PRD as downloadable Markdown document. */
+    public function export(Request $request, Project $project): StreamedResponse
+    {
+        $this->authorize('view', $project);
+
+        $prd = $this->projectPrd($project);
+
+        $filename = Str::slug($prd->title).'-'.now()->format('Ymd').'.md';
+
+        return response()->streamDownload(function () use ($prd) {
+            echo "# {$prd->title}\n\n";
+
+            if ($prd->summary) {
+                echo "> {$prd->summary}\n\n";
+            }
+
+            echo "---\n\n";
+
+            foreach ($prd->sections()->orderBy('order')->get() as $section) {
+                echo "## {$section->title}\n\n{$section->content}\n\n";
+            }
+
+            $latest = $prd->versions()->orderByDesc('id')->first();
+            $versionLabel = $latest ? $latest->version : 'draft';
+            $exportedAt = now()->format('d M Y H:i');
+
+            echo "---\n\n";
+            echo "_Diekspor dari PRDForge · versi terakhir: {$versionLabel} · {$exportedAt}_\n";
+        }, $filename, ['Content-Type' => 'text/markdown; charset=UTF-8']);
     }
 
     /** Resolve the project's PRD or 404. Route has no {prd} segment — implicit binding can't do it. */

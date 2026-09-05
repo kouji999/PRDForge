@@ -4,15 +4,18 @@ import { AppShell } from '@/Components/AppShell';
 import { Button } from '@/Components/Button';
 import { StatusPill } from '@/Components/StatusPill';
 import { ContextPanel } from './ContextPanel';
+import { Markdown } from '@/Components/Markdown';
 import { RequirementsPanel } from './RequirementsPanel';
 import { cn, timeAgo } from '@/lib';
 import {
     ArrowUp,
     FileText,
     Loader2,
+    PanelRight,
     RefreshCw,
     Sparkles,
     Square,
+    X,
 } from 'lucide-react';
 import type { ReadinessCriterion } from '@/types';
 
@@ -62,6 +65,7 @@ interface Props {
 
 export default function ProjectShow({ auth, sidebar, project, readiness, conversation, flash }: Props) {
     const [tab, setTab] = useState<'context' | 'requirements'>('context');
+    const [drawerOpen, setDrawerOpen] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>(conversation?.messages ?? []);
     const [input, setInput] = useState('');
     const [sending, setSending] = useState(false);
@@ -83,6 +87,44 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
     useEffect(() => {
         scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
     }, [messages, streamContent]);
+
+    // Shared poll tick � used by fresh generate and resume-after-refresh
+    const pollTick = useCallback(async () => {
+        try {
+            const res = await fetch(route('projects.prd.status', { project: project.id }));
+            const body = await res.json();
+
+            if (body.progress?.error) {
+                setGenError(body.progress.error);
+                setGenerating(false);
+                setGenProgress(null);
+                return;
+            }
+
+            if (body.prd_ready) {
+                window.location.href = route('projects.prd.show', { project: project.id });
+                return;
+            }
+
+            if (body.status === 'generating') {
+                setGenProgress(body.progress ?? { chunk: 0, total: 4 });
+                setTimeout(pollTick, 4000);
+            } else {
+                setGenerating(false);
+                setGenProgress(null);
+            }
+        } catch {
+            setTimeout(pollTick, 6000);
+        }
+    }, [project.id]);
+
+    // Resume generation progress polling after page refresh
+    useEffect(() => {
+        if (project.status !== 'generating') return;
+
+        setGenerating(true);
+        pollTick();
+    }, [pollTick, project.status]);
 
     const send = useCallback(
         async (text: string) => {
@@ -262,36 +304,7 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
     };
 
     const pollGeneration = () => {
-        const tick = async () => {
-            try {
-                const res = await fetch(route('projects.prd.status', { project: project.id }));
-                const body = await res.json();
-
-                if (body.progress?.error) {
-                    setGenError(body.progress.error);
-                    setGenerating(false);
-                    setGenProgress(null);
-                    return;
-                }
-
-                if (body.prd_ready) {
-                    window.location.href = route('projects.prd.show', { project: project.id });
-                    return;
-                }
-
-                if (body.status === 'generating') {
-                    setGenProgress(body.progress ?? { chunk: 0, total: 4 });
-                    setTimeout(tick, 4000);
-                } else {
-                    setGenerating(false);
-                    setGenProgress(null);
-                }
-            } catch {
-                setTimeout(tick, 6000);
-            }
-        };
-
-        tick();
+        pollTick();
     };
 
     const statusTone = (sidebar.statuses[project.status]?.tone ?? 'muted') as 'ok';
@@ -302,30 +315,50 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
         <AppShell user={auth.user} activeCount={sidebar.activeProjects} current="Projects">
             <Head title={project.name} />
 
-            <div className="flex min-h-0 flex-1">
+            <div className="relative flex min-h-0 flex-1">
                 {/* Chat column */}
                 <div className="flex min-w-0 flex-1 flex-col">
                     {/* Project header */}
-                    <div className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-3 md:px-6">
+                    <div className="flex shrink-0 items-center justify-between gap-2 border-b border-line bg-surface px-3 py-2.5 md:gap-3 md:px-6 md:py-3">
                         <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                                <h1 className="truncate font-semibold text-ink">{project.name}</h1>
+                                <h1 className="truncate text-sm font-semibold text-ink md:text-base">
+                                    {project.name}
+                                </h1>
                                 <StatusPill label={statusLabel} tone={statusTone} />
                             </div>
-                            <div className="mt-0.5 font-mono text-[11px] text-ink-3">
+                            <div className="mt-0.5 hidden font-mono text-[11px] text-ink-3 sm:block">
                                 {readiness.score}% readiness · {timeAgo(project.updated_at)}
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Button size="sm" onClick={extract} disabled={extracting || !conversation}>
-                                {extracting ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-                                Extract
+                        <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
+                            {/* Mobile inspector trigger */}
+                            <Button
+                                size="sm"
+                                className="lg:hidden"
+                                onClick={() => setDrawerOpen(true)}
+                                title="Context & Requirements"
+                            >
+                                <PanelRight size={14} />
+                            </Button>
+                            <Button
+                                size="sm"
+                                onClick={extract}
+                                disabled={extracting || !conversation}
+                                title="Extract requirements"
+                            >
+                                {extracting ? (
+                                    <Loader2 size={13} className="animate-spin" />
+                                ) : (
+                                    <RefreshCw size={13} />
+                                )}
+                                <span className="hidden sm:inline">Extract</span>
                             </Button>
                             {hasPrd ? (
                                 <a href={route('projects.prd.show', { project: project.id })}>
                                     <Button size="sm" variant="primary">
                                         <FileText size={13} />
-                                        Buka PRD
+                                        <span className="hidden sm:inline">Buka PRD</span>
                                     </Button>
                                 </a>
                             ) : (
@@ -341,14 +374,16 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
                                     ) : (
                                         <Sparkles size={13} />
                                     )}
-                                    {generating ? 'Generating…' : 'Generate PRD'}
+                                    <span className="hidden sm:inline">
+                                        {generating ? 'Generating…' : 'Generate PRD'}
+                                    </span>
                                 </Button>
                             )}
                         </div>
                     </div>
 
                     {generating && genProgress && (
-                        <div className="border-b border-[rgba(99,102,241,0.3)] bg-[rgba(99,102,241,0.08)] px-4 py-2 md:px-6">
+                        <div className="shrink-0 border-b border-[rgba(99,102,241,0.3)] bg-[rgba(99,102,241,0.08)] px-4 py-2 md:px-6">
                             <div className="flex items-center justify-between text-xs text-ink-2">
                                 <span className="flex items-center gap-1.5">
                                     <Loader2 size={13} className="animate-spin text-accent" />
@@ -367,18 +402,18 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
                         </div>
                     )}
                     {genError && (
-                        <div className="border-b border-[rgba(244,63,94,0.3)] bg-[rgba(244,63,94,0.08)] px-4 py-2 text-sm text-risk md:px-6">
+                        <div className="shrink-0 border-b border-[rgba(244,63,94,0.3)] bg-[rgba(244,63,94,0.08)] px-4 py-2 text-sm text-risk md:px-6">
                             {genError}
                         </div>
                     )}
                     {extractResult && (
-                        <div className="border-b border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] px-4 py-2 text-sm text-ok md:px-6">
+                        <div className="shrink-0 border-b border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] px-4 py-2 text-sm text-ok md:px-6">
                             {extractResult}
                         </div>
                     )}
 
                     {/* Readiness bar */}
-                    <div className="flex items-center gap-2 border-b border-line bg-surface px-4 py-2 md:px-6">
+                    <div className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-4 py-2 md:px-6">
                         <span className="font-mono text-[10px] uppercase tracking-wider text-ink-3">
                             Readiness
                         </span>
@@ -394,7 +429,7 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
                     </div>
 
                     {/* Messages */}
-                    <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 md:px-6">
+                    <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">
                         <div className="mx-auto max-w-3xl space-y-4">
                             {messages.length === 0 && !streaming && (
                                 <div className="rounded-lg border border-dashed border-line-strong bg-surface/50 p-8 text-center">
@@ -425,7 +460,7 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
                     </div>
 
                     {/* Composer */}
-                    <div className="border-t border-line bg-surface px-4 py-3 md:px-6">
+                    <div className="shrink-0 border-t border-line bg-surface px-4 py-3 md:px-6">
                         {chatError && (
                             <p className="mb-2 flex items-center justify-between rounded border border-[rgba(244,63,94,0.3)] bg-[rgba(244,63,94,0.08)] px-3 py-1.5 text-xs text-risk">
                                 {chatError}
@@ -477,8 +512,15 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
                     </div>
                 </div>
 
-                {/* Right inspector */}
-                <aside className="hidden w-80 shrink-0 flex-col border-l border-line bg-surface lg:flex">
+                {/* Right inspector — docked ≥ lg, drawer < lg */}
+                <aside
+                    className={cn(
+                        'absolute inset-y-0 right-0 z-40 flex w-80 max-w-[85vw] flex-col border-l border-line bg-surface shadow-[-4px_0_16px_rgba(0,0,0,0.35)] transition-transform duration-200 lg:static lg:z-auto lg:w-80 lg:shrink-0 lg:shadow-none',
+                        drawerOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0',
+                        !drawerOpen && 'hidden lg:flex',
+                        drawerOpen && 'flex',
+                    )}
+                >
                     <div className="flex border-b border-line">
                         <button
                             type="button"
@@ -502,6 +544,14 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
                         >
                             Requirements
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => setDrawerOpen(false)}
+                            className="border-b-2 border-transparent px-3 py-2.5 text-ink-3 transition-colors hover:text-ink lg:hidden"
+                            title="Tutup panel"
+                        >
+                            <X size={16} />
+                        </button>
                     </div>
 
                     <div className="flex-1 overflow-y-auto">
@@ -512,6 +562,14 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
                         )}
                     </div>
                 </aside>
+
+                {/* Drawer backdrop (mobile only) */}
+                {drawerOpen && (
+                    <div
+                        className="absolute inset-0 z-30 bg-black/40 lg:hidden"
+                        onClick={() => setDrawerOpen(false)}
+                    />
+                )}
             </div>
         </AppShell>
     );
@@ -521,10 +579,10 @@ function MessageBubble({ message, streaming }: { message: ChatMessage; streaming
     const isUser = message.role === 'user';
 
     return (
-        <div className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
+        <div className={cn('flex gap-2', isUser ? 'justify-end' : 'justify-start')}>
             <div
                 className={cn(
-                    'max-w-[85%] rounded-lg border px-3.5 py-2.5 text-sm leading-relaxed',
+                    'max-w-[85%] rounded-lg border px-3.5 py-2.5 text-sm leading-relaxed md:max-w-[75%]',
                     isUser
                         ? 'border-accent/40 bg-accent/10 text-ink'
                         : 'border-line bg-surface-2 text-ink-2',
@@ -537,7 +595,11 @@ function MessageBubble({ message, streaming }: { message: ChatMessage; streaming
                         {streaming && <span className="animate-pulse">streaming…</span>}
                     </div>
                 )}
-                <div className="whitespace-pre-wrap">{message.content}</div>
+                {isUser ? (
+                    <div className="whitespace-pre-wrap">{message.content}</div>
+                ) : (
+                    <Markdown content={message.content} compact />
+                )}
             </div>
         </div>
     );
