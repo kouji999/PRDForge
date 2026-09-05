@@ -30,3 +30,6 @@ Thumbs.db
 /debug-*.php
 /.playwright-mcp
 *.png
+
+diag*.php
+diag-out.txt
