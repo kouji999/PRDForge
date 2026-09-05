@@ -123,7 +123,7 @@ export default function ProjectsIndex({ auth, sidebar, projects }: Props) {
             {/* Create modal */}
             {creating && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-                    <div className="w-full max-w-md rounded-xl border border-line-strong bg-surface-3 p-5 shadow-[0_4px_16px_rgba(0,0,0,0.45)]">
+                    <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-xl border border-line-strong bg-surface-3 p-5 shadow-[0_4px_16px_rgba(0,0,0,0.45)]">
                         <div className="mb-4 flex items-center justify-between">
                             <h2 className="font-semibold text-ink">Project Baru</h2>
                             <button
@@ -154,14 +154,18 @@ export default function ProjectsIndex({ auth, sidebar, projects }: Props) {
                                 {errors.name && <p className="mt-1.5 text-xs text-risk">{errors.name}</p>}
                             </div>
                             <div>
-                                <Label htmlFor="description">Deskripsi Singkat (opsional)</Label>
+                                <Label htmlFor="description">Deskripsi (opsional — boleh panjang, paste full brief ide lo)</Label>
                                 <Textarea
                                     id="description"
-                                    rows={3}
+                                    rows={5}
                                     value={data.description}
                                     onChange={(e) => setData('description', e.target.value)}
-                                    placeholder="Satu-dua kalimat tentang idenya..."
+                                    placeholder="Ceritakan idemu se detail mungkin — masalah, target user, fitur, flow, constraint. Teks panjang aman di sini."
+                                    className="max-h-72 min-h-24"
                                 />
+                                <p className="mt-1 text-right font-mono text-[10px] text-ink-ghost">
+                                    {data.description.length.toLocaleString('id-ID')} / 100.000 karakter
+                                </p>
                                 {errors.description && (
                                     <p className="mt-1.5 text-xs text-risk">{errors.description}</p>
                                 )}

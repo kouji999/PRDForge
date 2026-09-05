@@ -43,7 +43,7 @@ class ProjectController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'description' => ['nullable', 'string', 'max:2000'],
+            'description' => ['nullable', 'string', 'max:100000'],
         ]);
 
         $project = DB::transaction(function () use ($request, $data) {
@@ -86,7 +86,7 @@ class ProjectController extends Controller
 
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:120'],
-            'description' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:100000'],
         ]);
 
         $project->update($data);

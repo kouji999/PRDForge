@@ -42,6 +42,9 @@ class ContextBuilder
 
         $lines = [];
 
+        // Full original brief — the richest source of user intent.
+        $lines[] = $this->field('Brief Asli (dari user)', $project->description);
+
         if ($context) {
             $lines[] = $this->field('Masalah', $context->problem);
             $lines[] = $this->field('Target Users', $context->target_users);
@@ -114,7 +117,7 @@ class ContextBuilder
             return null;
         }
 
-        return "### {$label}\n".Str::limit($value, 1200);
+        return "### {$label}\n".Str::limit($value, 4000);
     }
 
     private function listField(string $label, ?array $items): ?string
