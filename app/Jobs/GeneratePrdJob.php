@@ -86,6 +86,10 @@ class GeneratePrdJob implements ShouldQueue
         $user = User::findOrFail($this->userId);
         $project = Project::findOrFail($this->projectId);
 
+        // Re-assert generating status: retries/releases may have reset it
+        // while the job is legitimately still producing sections.
+        $project->forceFill(['status' => ProjectStatus::GENERATING->value])->save();
+
         // Resume if a previous attempt already persisted sections (retry-after release).
         $hasExisting = $project->prd()->withTrashed()->whereHas('sections')->exists();
 

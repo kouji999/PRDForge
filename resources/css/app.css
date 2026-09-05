@@ -59,6 +59,40 @@
     @apply font-mono text-xs font-medium leading-4 tracking-wide;
 }
 
+/* Print/Save-as-PDF: emit document content only — no app chrome. */
+@media print {
+    aside,
+    header,
+    nav,
+    button,
+    [class*='drawer'],
+    [class*='backdrop'] {
+        display: none !important;
+    }
+
+    body,
+    html {
+        background: #fff !important;
+        color: #111 !important;
+        overflow: visible !important;
+        height: auto !important;
+    }
+
+    main,
+    main > div {
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    .md,
+    .md * {
+        color: #111 !important;
+        border-color: #ddd !important;
+        background: transparent !important;
+    }
+}
+
 @utility label-sm {
     @apply font-mono text-[11px] leading-3.5 tracking-wider;
 }

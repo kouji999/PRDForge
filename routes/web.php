@@ -49,6 +49,7 @@ Route::middleware('auth')->group(function () {
     Route::post('projects/{project}/prd/generate', [PrdController::class, 'generate'])->middleware('throttle.ai:generate')->name('projects.prd.generate');
     Route::get('projects/{project}/prd/status', [PrdController::class, 'status'])->name('projects.prd.status');
     Route::get('projects/{project}/prd/export', [PrdController::class, 'export'])->name('projects.prd.export');
+    Route::get('projects/{project}/prd/export-pdf', [PrdController::class, 'exportPdf'])->name('projects.prd.exportPdf');
     Route::put('projects/{project}/prd', [PrdController::class, 'update'])->name('projects.prd.update');
     Route::put('projects/{project}/prd/sections/order', [PrdController::class, 'reorderSections'])->name('projects.prd.sections.reorder');
     Route::put('projects/{project}/prd/sections/{section}', [PrdController::class, 'updateSection'])->name('projects.prd.sections.update');

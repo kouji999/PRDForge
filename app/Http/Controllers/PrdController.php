@@ -30,9 +30,20 @@ class PrdController extends Controller
     {
         $this->authorize('view', $project);
 
+        $project->refresh();
+
+        // Generation in flight: no complete PRD yet — send the user back to
+        // the project chat view (it polls progress and redirects when done).
+        if ($project->status === ProjectStatus::GENERATING) {
+            return redirect()->route('projects.show', $project);
+        }
+
         $prd = $project->prd()->with(['sections' => fn ($q) => $q->orderBy('order'), 'versions'])->first();
 
-        abort_unless($prd !== null, 404, 'PRD belum dibuat.');
+        if ($prd === null || $prd->sections()->count() === 0) {
+            // Partial (crashed mid-generation) or none — back to chat view.
+            return redirect()->route('projects.show', $project);
+        }
 
         return Inertia::render('Prd/Workspace', [
             'project' => $this->projectSummary($project),
@@ -124,6 +135,55 @@ class PrdController extends Controller
             echo "---\n\n";
             echo "_Diekspor dari PRDForge · versi terakhir: {$versionLabel} · {$exportedAt}_\n";
         }, $filename, ['Content-Type' => 'text/markdown; charset=UTF-8']);
+    }
+
+    /** Export PRD as styled PDF document. */
+    public function exportPdf(Request $request, Project $project)
+    {
+        $this->authorize('view', $project);
+
+        $prd = $this->projectPrd($project);
+
+        $latest = $prd->versions()->orderByDesc('id')->first();
+        $versionLabel = $latest ? $latest->version : 'draft';
+
+        $sectionsHtml = '';
+        foreach ($prd->sections()->orderBy('order')->get() as $section) {
+            $sectionsHtml .= '<h2 class="sec-title">'.$section->title.'</h2>';
+            $sectionsHtml .= '<div class="sec-body">'.$this->markdownToHtml($section->content).'</div>';
+        }
+
+        $pdf = \Pdf::loadView('prd.export-pdf', [
+            'title' => $prd->title,
+            'summary' => $prd->summary,
+            'versionLabel' => $versionLabel,
+            'sectionsHtml' => $sectionsHtml,
+            'exportedAt' => now()->format('d F Y, H:i'),
+        ]);
+        $pdf->setPaper('a4');
+
+        return $pdf->download(Str::slug($prd->title).'-'.now()->format('Ymd').'.pdf');
+    }
+
+    /** Minimal markdown → HTML for PDF (headings, bold, lists, code). */
+    private function markdownToHtml(string $md): string
+    {
+        $esc = htmlspecialchars($md, ENT_QUOTES, 'UTF-8');
+
+        $esc = preg_replace('/```(\w*)\r?\n(.*?)```/s', '<pre>$2</pre>', $esc);
+        $esc = preg_replace('/^### (.+)$/m', '<h4>$1</h4>', $esc);
+        $esc = preg_replace('/^## (.+)$/m', '<h3>$1</h3>', $esc);
+        $esc = preg_replace('/^# (.+)$/m', '<h2>$1</h2>', $esc);
+        $esc = preg_replace('/\*\*(.+?)\*\*/s', '<strong>$1</strong>', $esc);
+        $esc = preg_replace('/`([^`]+)`/s', '<code>$1</code>', $esc);
+        $esc = preg_replace('/^- (.+)$/m', '<li>$1</li>', $esc);
+        $esc = str_replace('<li>', '<ul><li>', '');
+        // group consecutive li
+        $esc = preg_replace('/(<li>.*?<\/li>\n?)+/s', '<ul>$0</ul>', $esc);
+        $esc = preg_replace('/<ul><ul>/s', '<ul>', $esc);
+        $esc = preg_replace('/<\/ul><\/ul>/s', '</ul>', $esc);
+
+        return $esc;
     }
 
     /** Resolve the project's PRD or 404. Route has no {prd} segment — implicit binding can't do it. */

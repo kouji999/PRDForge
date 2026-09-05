@@ -11,13 +11,13 @@ $Root = $PSScriptRoot
 $Port = 8187
 
 function Get-ProcList {
-    return Get-CimInstance Win32_Process -Filter "Name='php.exe'" |
-        Where-Object {
-            ($_.CommandLine -match [regex]::Escape($Root)) -or
-            ($_.CommandLine -match 'artisan (serve|queue:work)' -and $_.ExecutablePath -and (
-                (Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue).Path
-            ))
-        }
+    Get-CimInstance Win32_Process -Filter "Name='php.exe'" |
+        Where-Object { $_.CommandLine -match 'PRDForge' }
+}
+
+function Get-ServerProc {
+    Get-CimInstance Win32_Process -Filter "Name='php.exe'" |
+        Where-Object { $_.CommandLine -match 'artisan\s+serve' }
 }
 
 function Get-WorkerList {
@@ -27,6 +27,11 @@ function Get-WorkerList {
 
 function Stop-All {
     Get-ProcList | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+    Start-Sleep -Seconds 1
+}
+
+function Stop-Server {
+    Get-ServerProc | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
     Start-Sleep -Seconds 1
 }
 
@@ -46,7 +51,7 @@ function Start-Worker {
     }
 
     Start-Process -FilePath 'cmd.exe' `
-        -ArgumentList '/c', 'start', '/min', '"PRDForge Worker"', 'php', 'artisan', 'queue:work', '--timeout=3700', '--tries=1', '--sleep=1', '--max-jobs=200' `
+        -ArgumentList '/c', 'start', '/min', '"PRDForge Worker"', 'php', 'artisan', 'queue:work', '--timeout=3700', '--tries=3', '--sleep=1', '--max-jobs=200' `
         -WorkingDirectory $Root -WindowStyle Hidden
 }
 
@@ -84,8 +89,20 @@ switch ($Action) {
         Write-Host '[PRDForge] Semua proses di-stop' -ForegroundColor Yellow
     }
     'restart' {
-        Stop-All
-        & $MyInvocation.MyCommand.Path 'start'
+        # Restart the WEB SERVER ONLY — a busy queue worker keeps its job
+        # (killing it mid-run zombie-reserves the job for retry_after).
+        Stop-Server
+        Start-Server
+        Start-Sleep -Seconds 3
+        if (Test-Healthy) {
+            Write-Host "[PRDForge] Server OK → http://127.0.0.1:$Port" -ForegroundColor Green
+        } else {
+            Write-Host '[PRDForge] Server GAGAL start. Cek storage/logs/laravel.log' -ForegroundColor Red
+            exit 1
+        }
+
+        Start-Worker
+        Write-Host "[PRDForge] App: http://127.0.0.1:$Port"
     }
     'status' {
         $healthy = Test-Healthy

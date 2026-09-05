@@ -10,6 +10,7 @@ import {
     ArrowLeft,
     CheckCircle2,
     Download,
+    FileText,
     GitBranch,
     Loader2,
     Pencil,
@@ -479,6 +480,16 @@ export default function PrdWorkspace({ auth, sidebar, project, prd, versions }: 
                                 <Button size="sm">
                                     <Download size={13} />
                                     Export
+                                </Button>
+                            </a>
+                            <a
+                                href={route('projects.prd.exportPdf', { project: project.id })}
+                                className="hidden sm:block"
+                                title="Export PDF"
+                            >
+                                <Button size="sm">
+                                    <FileText size={13} />
+                                    PDF
                                 </Button>
                             </a>
                             <Button size="sm" onClick={runReview} disabled={reviewBusy}>

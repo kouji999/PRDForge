@@ -22,11 +22,14 @@ use Illuminate\Support\Facades\Log;
  */
 class PrdGenerationService
 {
-    /** Chunks of canonical section keys. */
+    /** Chunks of canonical section keys — sized for reasoning-model budgets. */
     public const SECTION_CHUNKS = [
-        ['overview', 'problem', 'goals', 'target_users', 'user_personas', 'product_scope', 'mvp_scope'],
-        ['user_journey', 'features', 'functional_requirements', 'non_functional_requirements', 'ux_requirements'],
-        ['technical_requirements', 'data_requirements', 'api_requirements', 'security_requirements', 'analytics'],
+        ['overview', 'problem', 'goals', 'target_users', 'user_personas'],
+        ['product_scope', 'mvp_scope', 'user_journey'],
+        ['features', 'functional_requirements'],
+        ['non_functional_requirements', 'ux_requirements'],
+        ['technical_requirements', 'data_requirements'],
+        ['api_requirements', 'security_requirements', 'analytics'],
         ['risks', 'dependencies', 'success_metrics', 'roadmap'],
     ];
 
@@ -146,18 +149,29 @@ class PrdGenerationService
     private function generateChunk(User $user, Project $project, string $context, array $chunk, bool $withMeta, Prd $existing): array
     {
         $chunkList = implode(', ', $chunk);
-        $extra = $withMeta
-            ? 'Tulis juga field "title" (nama produk/PRD) dan "summary" (2-3 kalimat).'
-            : 'PRD yang sudah dibuat sebagian (untuk konsistensi, jangan ulangi section lain):'."\n".$this->contextBuilder->prdFullBlock($existing);
+
+        // Chunk 1 sets title/summary; later chunks get only a compact
+        // section-index (title + one-line gist) — sending full prior PRD
+        // makes reasoning models burn their token budget thinking.
+        if ($withMeta) {
+            $extra = 'Tulis juga field "title" (nama produk/PRD) dan "summary" (2-3 kalimat).';
+        } else {
+            $index = $existing->sections()
+                ->orderBy('order')
+                ->get()
+                ->map(fn ($s) => '- '.$s->title.' ('.$s->key.')')
+                ->implode("\n");
+            $extra = "Section yang SUDAH dibuat (jangan ulangi, cukup konsisten):\n{$index}";
+        }
 
         $request = new AiRequest(
             messages: [[
                 'role' => 'user',
-                'content' => "Buat PRD untuk project \"{$project->name}\".\n\nKonteks:\n{$context}\n\n{$extra}\n\nUntuk request ini, TULIS HANYA section berikut: {$chunkList}. Format setiap section markdown ringkas (heading, bullet, tabel bila relevan).",
+                'content' => "Buat PRD untuk project \"{$project->name}\".\n\nKonteks:\n{$context}\n\n{$extra}\n\nUntuk request ini, TULIS HANYA section berikut: {$chunkList}. Format setiap section markdown ringkas (heading, bullet, tabel bila relevan). JANGAN berpikir panjang — langsung tulis JSON.",
             ]],
             systemPrompt: PromptLibrary::prdGenerationSystem(),
             temperature: 0.4,
-            maxTokens: 8000,
+            maxTokens: 16000,
             jsonMode: true,
             timeoutSeconds: 600,
         );
