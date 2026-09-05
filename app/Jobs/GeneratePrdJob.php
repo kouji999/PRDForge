@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\PrdGenerationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
@@ -29,9 +30,20 @@ class GeneratePrdJob implements ShouldQueue
 
     public int $timeout = 3600;
 
-    public int $tries = 1;
+    /**
+     * Attempts allowed: worker restarts mid-run re-reserve the job;
+     * handle() is idempotent (resume mode skips completed chunks).
+     */
+    public int $tries = 3;
 
-    public int $retryUntil = 3700;
+    /**
+     * Job may legitimately run >1h (4 reasoning-model chunks) — allow
+     * re-dispatch window well past that before queue counts it as lost.
+     */
+    public function retryUntil(): \DateTimeInterface
+    {
+        return now()->addSeconds(7200);
+    }
 
     /** Don't release duplicate back into queue. */
     public bool $deleteWhenMissingModels = true;
@@ -45,6 +57,32 @@ class GeneratePrdJob implements ShouldQueue
     {
         set_time_limit(0);
 
+        // SQLite write-lock contention with concurrent requests (chat SSE,
+        // polling) — retry instead of failing the whole generation.
+        $attempts = 0;
+
+        do {
+            $attempts++;
+
+            try {
+                $this->runGeneration($service);
+
+                return;
+            } catch (QueryException $e) {
+                $locked = str_contains(strtolower($e->getMessage()), 'database is locked')
+                    || str_contains(strtolower($e->getMessage()), 'busy');
+
+                if (! $locked || $attempts >= 5) {
+                    throw $e;
+                }
+
+                sleep(3 * $attempts);
+            }
+        } while (true);
+    }
+
+    private function runGeneration(PrdGenerationService $service): void
+    {
         $user = User::findOrFail($this->userId);
         $project = Project::findOrFail($this->projectId);
 
@@ -70,7 +108,22 @@ class GeneratePrdJob implements ShouldQueue
         $project = Project::find($this->projectId);
 
         if ($project) {
-            $project->forceFill(['status' => ProjectStatus::READY_FOR_PRD->value])->save();
+            // DB may be busy when failure fires — retry the status write.
+            $attempts = 0;
+
+            while ($attempts < 5) {
+                $attempts++;
+
+                try {
+                    $project->forceFill(['status' => ProjectStatus::READY_FOR_PRD->value])->save();
+                    break;
+                } catch (QueryException) {
+                    if ($attempts >= 5) {
+                        break;
+                    }
+                    sleep(2);
+                }
+            }
 
             $category = $e instanceof AiProviderException ? $e->category : 'unknown';
 

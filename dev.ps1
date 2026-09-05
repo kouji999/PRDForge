@@ -12,7 +12,17 @@ $Port = 8187
 
 function Get-ProcList {
     return Get-CimInstance Win32_Process -Filter "Name='php.exe'" |
-        Where-Object { $_.CommandLine -match [regex]::Escape($Root) }
+        Where-Object {
+            ($_.CommandLine -match [regex]::Escape($Root)) -or
+            ($_.CommandLine -match 'artisan (serve|queue:work)' -and $_.ExecutablePath -and (
+                (Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue).Path
+            ))
+        }
+}
+
+function Get-WorkerList {
+    return Get-CimInstance Win32_Process -Filter "Name='php.exe'" |
+        Where-Object { $_.CommandLine -match 'artisan\s+queue:work' }
 }
 
 function Stop-All {
@@ -28,8 +38,7 @@ function Start-Server {
 
 function Start-Worker {
     # Detached worker: survives script exit (cmd wrapper breaks PS job-object linkage)
-    $existing = Get-CimInstance Win32_Process -Filter "Name='php.exe'" |
-        Where-Object { $_.CommandLine -match [regex]::Escape($Root) -and $_.CommandLine -match 'queue:work' }
+    $existing = Get-WorkerList
 
     if ($existing) {
         Write-Host "[PRDForge] Queue worker sudah jalan (PID: $($existing[0].ProcessId))" -ForegroundColor Yellow
