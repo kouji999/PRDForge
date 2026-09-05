@@ -23,7 +23,7 @@ class ProjectDescriptionLengthTest extends TestCase
             'description' => $desc,
         ]);
 
-        $project = \App\Models\Project::where('user_id', $user->id)->first();
+        $project = Project::where('user_id', $user->id)->first();
 
         $response->assertRedirect();
         $this->assertNotNull($project);
