@@ -25,7 +25,7 @@ interface Props {
 }
 
 export default function ProjectsIndex({ auth, sidebar, projects }: Props) {
-    const [creating, setCreating] = useState(false);
+    const [creating, setCreating] = useState(false);    const [formError, setFormError] = useState<string | null>(null);
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         description: '',
@@ -33,10 +33,21 @@ export default function ProjectsIndex({ auth, sidebar, projects }: Props) {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+        setFormError(null);
+
         post(route('projects.store'), {
             onSuccess: () => {
                 reset();
                 setCreating(false);
+            },
+            onError: () => {
+                // Validation errors populate `errors`; anything else (network,
+                // 419 expired session, 500) has no field errors.
+                if (!errors.name && !errors.description) {
+                    setFormError(
+                        'Gagal membuat project. Cek koneksi, lalu coba lagi. (Bisa juga session habis — refresh halaman dan login ulang.)',
+                    );
+                }
             },
         });
     };
@@ -125,6 +136,11 @@ export default function ProjectsIndex({ auth, sidebar, projects }: Props) {
                         </div>
 
                         <form onSubmit={submit} className="space-y-4">
+                            {formError && (
+                                <p className="rounded border border-[rgba(244,63,94,0.3)] bg-[rgba(244,63,94,0.08)] px-3 py-2 text-xs leading-relaxed text-risk">
+                                    {formError}
+                                </p>
+                            )}
                             <div>
                                 <Label htmlFor="name">Nama Project</Label>
                                 <Input
@@ -146,12 +162,19 @@ export default function ProjectsIndex({ auth, sidebar, projects }: Props) {
                                     onChange={(e) => setData('description', e.target.value)}
                                     placeholder="Satu-dua kalimat tentang idenya..."
                                 />
+                                {errors.description && (
+                                    <p className="mt-1.5 text-xs text-risk">{errors.description}</p>
+                                )}
                             </div>
                             <div className="flex justify-end gap-2">
-                                <Button type="button" onClick={() => setCreating(false)}>
+                                <Button type="button" onClick={() => setCreating(false)} disabled={processing}>
                                     Cancel
                                 </Button>
-                                <Button type="submit" variant="primary" disabled={processing}>
+                                <Button
+                                    type="submit"
+                                    variant="primary"
+                                    disabled={processing || data.name.trim() === ''}
+                                >
                                     {processing ? 'Membuat…' : 'Buat Project'}
                                 </Button>
                             </div>

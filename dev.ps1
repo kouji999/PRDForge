@@ -23,12 +23,21 @@ function Stop-All {
 function Start-Server {
     Start-Process -FilePath 'php' `
         -ArgumentList 'artisan', 'serve', "--port=$Port", '--no-reload' `
-        -WorkingDirectory $Root -WindowStyle Hidden
+        -WorkingDirectory $Root -WindowStyle Minimized
 }
 
 function Start-Worker {
-    Start-Process -FilePath 'php' `
-        -ArgumentList 'artisan', 'queue:work', '--timeout=3700', '--tries=1', '--sleep=1', '--max-jobs=200' `
+    # Detached worker: survives script exit (cmd wrapper breaks PS job-object linkage)
+    $existing = Get-CimInstance Win32_Process -Filter "Name='php.exe'" |
+        Where-Object { $_.CommandLine -match [regex]::Escape($Root) -and $_.CommandLine -match 'queue:work' }
+
+    if ($existing) {
+        Write-Host "[PRDForge] Queue worker sudah jalan (PID: $($existing[0].ProcessId))" -ForegroundColor Yellow
+        return
+    }
+
+    Start-Process -FilePath 'cmd.exe' `
+        -ArgumentList '/c', 'start', '/min', '"PRDForge Worker"', 'php', 'artisan', 'queue:work', '--timeout=3700', '--tries=1', '--sleep=1', '--max-jobs=200' `
         -WorkingDirectory $Root -WindowStyle Hidden
 }
 
