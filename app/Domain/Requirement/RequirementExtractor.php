@@ -12,6 +12,7 @@ use App\Models\Project;
 use App\Models\ProjectContext;
 use App\Models\Requirement;
 use App\Models\User;
+use Illuminate\Support\Str;
 
 /**
  * Turns conversation content into structured project context + requirements.
@@ -25,15 +26,32 @@ class RequirementExtractor
 
     public function extractFromConversation(User $user, Conversation $conversation): ExtractionResult
     {
-        $messages = $conversation->latestMessages(60)
-            ->map(fn ($m) => ['role' => $m->role === 'assistant' ? 'assistant' : 'user', 'content' => $m->content])
+        // Reasoning models burn output tokens thinking; long conversations
+        // starve the final JSON. Compact the input: user turns verbatim
+        // (trimmed), assistant turns heavily summarized.
+        $messages = $conversation->latestMessages(40)
+            ->map(function ($m) {
+                if ($m->role === 'assistant') {
+                    return ['role' => 'assistant', 'content' => 'Ringkasan: '.Str::limit($m->content, 600)];
+                }
+
+                return ['role' => 'user', 'content' => Str::limit($m->content, 4000)];
+            })
             ->all();
 
+        // Single-turn wrapper — extraction treats it as one document, not a chat.
+        $document = collect($messages)
+            ->map(fn ($m) => strtoupper($m['role']).': '.$m['content'])
+            ->implode("\n\n");
+
         $request = new AiRequest(
-            messages: $messages,
+            messages: [[
+                'role' => 'user',
+                'content' => "PERCAKAPAN DISCOVERY (dokumen untuk ekstraksi):\n\n{$document}\n\nEkstrak sekarang. Output JSON saja.",
+            ]],
             systemPrompt: PromptLibrary::extractionSystem(),
             temperature: 0.2,
-            maxTokens: 6000,
+            maxTokens: 16000,
             jsonMode: true,
             timeoutSeconds: 600,
         );

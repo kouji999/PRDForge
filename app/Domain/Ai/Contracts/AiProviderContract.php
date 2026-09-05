@@ -12,6 +12,12 @@ interface AiProviderContract
     public function chat(AiRequest $request): AiResponse;
 
     /**
+     * Non-streaming semantics over SSE transport (reliable fallback when
+     * a gateway hangs non-streaming requests).
+     */
+    public function chatViaStream(AiRequest $request): AiResponse;
+
+    /**
      * Streaming chat completion. Yields string deltas.
      *
      * @return \Generator<string>

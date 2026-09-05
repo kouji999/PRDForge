@@ -76,7 +76,47 @@ class OpenAiCompatibleAdapter implements AiProviderContract
         );
     }
 
+    /**
+     * @return \Generator<string> content deltas (UI display) — reasoning excluded
+     */
     public function chatStream(AiRequest $request): \Generator
+    {
+        yield from $this->streamDeltas($request, includeReasoning: false);
+    }
+
+    /**
+     * @return \Generator<string> content+reasoning deltas — accumulated
+     *                            server-side, reasoning reappears as final content for
+     *                            reasoning-only responses (JSON ops tolerate it via parser).
+     */
+    public function chatViaStream(AiRequest $request): AiResponse
+    {
+        $started = microtime(true);
+        $full = '';
+        $contentOnly = '';
+        $hadContent = false;
+
+        foreach ($this->streamDeltas($request, includeReasoning: true) as $delta) {
+            $full .= $delta;
+        }
+
+        // Prefer reasoning_content-less content if present; when the model
+        // only streamed reasoning (free-tier quirks), full = reasoning.
+        if (trim($full) === '') {
+            throw new AiProviderException('Provider returned empty content.', ErrorNormalizer::INVALID_OUTPUT);
+        }
+
+        return new AiResponse(
+            content: $full,
+            latencyMs: (int) ((microtime(true) - $started) * 1000),
+            finishReason: 'stop',
+        );
+    }
+
+    /**
+     * @return \Generator<string>
+     */
+    private function streamDeltas(AiRequest $request, bool $includeReasoning): \Generator
     {
         $body = $request->toStreamPayload() + ['model' => $this->model];
 
@@ -119,11 +159,14 @@ class OpenAiCompatibleAdapter implements AiProviderContract
                         continue;
                     }
 
-                    // 9Router may omit delta.content; guard strict types.
-                    $delta = $decoded['choices'][0]['delta']['content'] ?? null;
+                    $choice = $decoded['choices'][0] ?? [];
+                    $delta = $choice['delta']['content'] ?? null;
+                    $reasoning = $choice['delta']['reasoning_content'] ?? null;
 
                     if (is_string($delta) && $delta !== '') {
                         yield $delta;
+                    } elseif ($includeReasoning && is_string($reasoning) && $reasoning !== '') {
+                        yield $reasoning;
                     }
                 }
             }

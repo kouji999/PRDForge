@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { AppShell } from '@/Components/AppShell';
 import { Button } from '@/Components/Button';
 import { StatusPill } from '@/Components/StatusPill';
@@ -220,6 +220,11 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
                 }
 
                 setStreamContent('');
+
+                // Auto-extract: keep context/readiness fresh without user action.
+                if (trimmed.length >= 80) {
+                    extract(true);
+                }
             } catch (err) {
                 const isAbort = err instanceof DOMException && err.name === 'AbortError';
                 if (!isAbort) {
@@ -241,11 +246,11 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
         setStreamContent('');
     };
 
-    const extract = async () => {
-        if (!conversation || extracting) return;
+    const extract = async (silent = false) => {
+        if (!conversation || extracting) return { proposed: 0, contextChanges: 0 };
 
         setExtracting(true);
-        setExtractResult(null);
+        if (!silent) setExtractResult(null);
 
         try {
             const res = await fetch(
@@ -264,12 +269,23 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
 
             if (!res.ok) throw new Error(body.error ?? 'Ekstraksi gagal.');
 
-            setExtractResult(
-                `${body.proposed.length} requirement baru diusulkan, konteks: ${body.context_changes?.length ?? 0} field diperbarui. Review di tab Requirements.`,
-            );
-            window.location.reload();
+            if (silent) {
+                // Background post-chat extraction: refresh page data silently so
+                // context panel + readiness + requirements update live.
+                router.reload({ only: ['project', 'readiness', 'conversation'] });
+            } else {
+                setExtractResult(
+                    `${body.proposed.length} requirement baru diusulkan, konteks: ${body.context_changes?.length ?? 0} field diperbarui. Review di tab Requirements.`,
+                );
+                window.location.reload();
+            }
+
+            return { proposed: body.proposed?.length ?? 0, contextChanges: body.context_changes?.length ?? 0 };
         } catch (err) {
-            setExtractResult(err instanceof Error ? err.message : 'Ekstraksi gagal.');
+            if (!silent) {
+                setExtractResult(err instanceof Error ? err.message : 'Ekstraksi gagal.');
+            }
+            return { proposed: 0, contextChanges: 0 };
         } finally {
             setExtracting(false);
         }
@@ -343,7 +359,7 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
                             </Button>
                             <Button
                                 size="sm"
-                                onClick={extract}
+                                onClick={() => extract(false)}
                                 disabled={extracting || !conversation}
                                 title="Extract requirements"
                             >
@@ -409,6 +425,15 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
                     {extractResult && (
                         <div className="shrink-0 border-b border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] px-4 py-2 text-sm text-ok md:px-6">
                             {extractResult}
+                        </div>
+                    )}
+                    {extracting && (
+                        <div className="shrink-0 flex items-center gap-2 border-b border-line bg-surface px-4 py-2 text-sm text-ink-3 md:px-6">
+                            <Loader2 size={13} className="animate-spin text-accent" />
+                            <span>
+                                AI menganalisis percakapan — mengisi konteks &amp; requirements otomatis…
+                            </span>
+                            <span className="font-mono text-[10px] text-ink-ghost">±1-3 menit</span>
                         </div>
                     )}
 
