@@ -159,6 +159,8 @@ class ProjectController extends Controller
             'slug' => $p->slug,
             'description' => $p->description,
             'status' => $p->status->value,
+            'ai_combo_id' => $p->ai_combo_id,
+            'ai_combo_name' => $p->aiCombo?->name,
             'context' => $p->context ? [
                 'problem' => $p->context->problem,
                 'target_users' => $p->context->target_users,

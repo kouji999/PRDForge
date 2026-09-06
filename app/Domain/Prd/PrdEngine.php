@@ -48,7 +48,7 @@ class PrdEngine
         $generation = AiLogger::beginGeneration($user->id, 'section_action', $prd->project_id);
 
         try {
-            $data = $this->ai->chatJson($user, $request, 'section_action');
+            $data = $this->ai->chatJson($user, $request, 'section_action', $prd->project);
 
             AiLogger::completeGeneration($generation, ['request_id' => AiLogger::requestId()]);
 
@@ -96,7 +96,7 @@ class PrdEngine
         $generation = AiLogger::beginGeneration($user->id, 'prd_review', $prd->project_id);
 
         try {
-            $data = $this->ai->chatJson($user, $request, 'prd_review');
+            $data = $this->ai->chatJson($user, $request, 'prd_review', $prd->project);
 
             AiLogger::completeGeneration($generation, ['request_id' => AiLogger::requestId()]);
 

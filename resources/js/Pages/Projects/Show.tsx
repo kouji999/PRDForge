@@ -35,6 +35,8 @@ interface Props {
         slug: string;
         description: string | null;
         status: string;
+        ai_combo_id: number | null;
+        ai_combo_name: string | null;
         context: {
             problem: string | null;
             target_users: string | null;
@@ -357,6 +359,7 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
                             >
                                 <PanelRight size={14} />
                             </Button>
+                            <ComboSelector projectId={project.id} currentId={project.ai_combo_id} />
                             <Button
                                 size="sm"
                                 onClick={() => extract(false)}
@@ -597,6 +600,75 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
                 )}
             </div>
         </AppShell>
+    );
+}
+
+interface ComboOption {
+    id: number;
+    name: string;
+    is_default: boolean;
+    providers: Array<{ id: number | null; name: string | null }>;
+}
+
+const csrfToken = () => document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
+
+function ComboSelector({ projectId, currentId }: { projectId: number; currentId: number | null }) {
+    const [combos, setCombos] = useState<ComboOption[]>([]);
+    const [value, setValue] = useState<string>(currentId ? String(currentId) : '');
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        fetch(route('ai.combos.index'))
+            .then((r) => r.json())
+            .then((b) => {
+                const list: ComboOption[] = b.combos ?? [];
+                setCombos(list);
+
+                // Default: project's combo, else default combo
+                if (!value) {
+                    const def = list.find((c) => c.id === currentId) ?? list.find((c) => c.is_default) ?? list[0];
+                    if (def) setValue(String(def.id));
+                }
+            })
+            .catch(() => {});
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const assign = async (comboId: string) => {
+        setSaving(true);
+
+        try {
+            await fetch(route('projects.combo.assign', { project: projectId }), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken() },
+                body: JSON.stringify({ combo_id: comboId === '' ? null : Number(comboId) }),
+            });
+
+            setValue(comboId);
+        } catch {
+            // keep previous value
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (combos.length === 0) return null;
+
+    return (
+        <select
+            value={value}
+            onChange={(e) => assign(e.target.value)}
+            disabled={saving}
+            title="AI Combo — tim provider dengan failover"
+            className="hidden h-8 max-w-44 rounded border border-line bg-canvas px-2 font-mono text-[11px] text-ink-2 outline-none transition-colors hover:border-line-strong focus:border-accent disabled:opacity-50 lg:block"
+        >
+            <option value="">AI: Default provider</option>
+            {combos.map((c) => (
+                <option key={c.id} value={c.id}>
+                    AI: {c.name} ({c.providers.filter(Boolean).length} AI)
+                </option>
+            ))}
+        </select>
     );
 }
 

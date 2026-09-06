@@ -176,7 +176,7 @@ class PrdGenerationService
             timeoutSeconds: 600,
         );
 
-        $data = $this->ai->chatJson($user, $request, 'prd_generation');
+        $data = $this->ai->chatJson($user, $request, 'prd_generation', $project);
 
         if (! isset($data['sections']) || ! is_array($data['sections'])) {
             throw new AiProviderException('Chunk tanpa sections.', ErrorNormalizer::INVALID_OUTPUT);

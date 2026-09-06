@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AiComboController;
 use App\Http\Controllers\AiProviderController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
@@ -69,4 +70,11 @@ Route::middleware('auth')->group(function () {
     Route::post('ai/providers/{provider}/test', [AiProviderController::class, 'test'])->middleware('throttle.ai:test')->name('ai.providers.test');
     Route::post('ai/providers/test', [AiProviderController::class, 'test'])->middleware('throttle.ai:test')->name('ai.providers.test-unsaved');
     Route::get('ai/providers/{provider}/models', [AiProviderController::class, 'models'])->name('ai.providers.models');
+
+    // AI combos (ordered provider teams with failover)
+    Route::get('ai/combos', [AiComboController::class, 'index'])->name('ai.combos.index');
+    Route::post('ai/combos', [AiComboController::class, 'store'])->name('ai.combos.store');
+    Route::put('ai/combos/{combo}', [AiComboController::class, 'update'])->name('ai.combos.update');
+    Route::delete('ai/combos/{combo}', [AiComboController::class, 'destroy'])->name('ai.combos.destroy');
+    Route::put('projects/{project}/combo', [AiComboController::class, 'assignToProject'])->name('projects.combo.assign');
 });

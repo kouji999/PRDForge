@@ -93,15 +93,11 @@ class OpenAiCompatibleAdapter implements AiProviderContract
     {
         $started = microtime(true);
         $full = '';
-        $contentOnly = '';
-        $hadContent = false;
 
         foreach ($this->streamDeltas($request, includeReasoning: true) as $delta) {
             $full .= $delta;
         }
 
-        // Prefer reasoning_content-less content if present; when the model
-        // only streamed reasoning (free-tier quirks), full = reasoning.
         if (trim($full) === '') {
             throw new AiProviderException('Provider returned empty content.', ErrorNormalizer::INVALID_OUTPUT);
         }
@@ -130,6 +126,27 @@ class OpenAiCompatibleAdapter implements AiProviderContract
 
             if ($response->failed()) {
                 throw $this->wrapWithStatus($response->status(), $response->body());
+            }
+
+            $contentType = (string) ($response->header('Content-Type') ?? '');
+
+            // Gateways that ignore stream:true return a buffered JSON
+            // completion — handle it directly.
+            if (! str_contains($contentType, 'event-stream')) {
+                $data = $response->json();
+
+                if (isset($data['choices'][0]['message'])) {
+                    $message = $data['choices'][0]['message'];
+                    $content = $message['content'] ?? $message['reasoning_content'] ?? null;
+
+                    if (is_string($content) && $content !== '') {
+                        yield $content;
+
+                        return;
+                    }
+                }
+
+                throw new AiProviderException('Malformed response: missing choices[0].message', ErrorNormalizer::INVALID_OUTPUT);
             }
 
             $stream = $response->toPsrResponse()->getBody();

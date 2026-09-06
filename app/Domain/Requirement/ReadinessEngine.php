@@ -103,7 +103,7 @@ class ReadinessEngine
         );
 
         try {
-            $data = $this->ai->chatJson($user, $request, 'readiness');
+            $data = $this->ai->chatJson($user, $request, 'readiness', $project);
 
             $base = $this->mergeAiNotes($base, $data);
         } catch (\Throwable) {

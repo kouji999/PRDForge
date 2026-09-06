@@ -4,6 +4,7 @@ import { AppShell } from '@/Components/AppShell';
 import { Button } from '@/Components/Button';
 import { Input, Label } from '@/Components/Input';
 import { StatusPill } from '@/Components/StatusPill';
+import { CombosSection } from './CombosSection';
 import { CheckCircle2, Loader2, Plug, Plus, Star, Trash2, X, Zap } from 'lucide-react';
 
 interface Provider {
@@ -368,6 +369,19 @@ export default function ProviderSettings({ auth, sidebar }: Props) {
                             Tambah Provider
                         </Button>
                     )}
+
+                    {/* Divider */}
+                    <div className="my-6 border-t border-line" />
+
+                    {/* AI Combos */}
+                    <CombosSection
+                        providers={providers.map((p) => ({
+                            id: p.id,
+                            name: p.name,
+                            model: p.model,
+                            status: p.status,
+                        }))}
+                    />
                 </div>
             </div>
         </AppShell>

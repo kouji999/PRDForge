@@ -7,11 +7,17 @@ use App\Domain\Ai\Contracts\AiProviderContract;
 use App\Domain\Ai\Observability\AiLogger;
 use App\Domain\Ai\Support\AiRequest;
 use App\Domain\Ai\Support\AiResponse;
+use App\Domain\Ai\Support\ErrorNormalizer;
+use App\Models\Project;
 use App\Models\User;
 
 /**
- * Facade over provider adapters: adds observability + JSON validation.
- * All AI operations in the app go through this service.
+ * Facade over provider adapters: adds observability, JSON validation and
+ * combo failover. All AI operations in the app go through this service.
+ *
+ * A project may have an AI combo — an ordered team of providers. Requests
+ * walk the chain: primary first, next member on failure. Without a combo,
+ * the single default provider is used (same behavior as before).
  */
 class AiService
 {
@@ -19,115 +25,201 @@ class AiService
         private readonly ProviderResolver $resolver,
     ) {}
 
-    public function chat(User $user, AiRequest $request, string $operation = 'chat'): AiResponse
+    public function chat(User $user, AiRequest $request, string $operation = 'chat', ?Project $project = null): AiResponse
     {
-        $provider = $this->resolver->resolve($user);
-        $requestId = AiLogger::requestId();
+        $chain = $this->resolver->resolveChain($user, $project);
 
-        try {
-            $response = $provider->chat($request);
-
-            AiLogger::logUsage(
-                requestId: $requestId,
-                providerName: $provider->name(),
-                model: 'configured',
-                operation: $operation,
-                status: 'success',
-                userId: $user->id,
-                inputTokens: $response->inputTokens,
-                outputTokens: $response->outputTokens,
-                latencyMs: $response->latencyMs,
-            );
-
-            return $response;
-        } catch (AiProviderException $e) {
-            if ($e->category === ErrorNormalizer::TIMEOUT) {
-                // Gateway hung the non-streaming request. Retry once over
-                // SSE transport — immune to whole-response buffering stalls.
-                try {
-                    $response = $provider->chatViaStream($request);
-
-                    AiLogger::logUsage(
-                        requestId: $requestId,
-                        providerName: $provider->name(),
-                        model: 'configured',
-                        operation: $operation.':stream_fallback',
-                        status: 'success',
-                        userId: $user->id,
-                        latencyMs: $response->latencyMs,
-                    );
-
-                    return $response;
-                } catch (\Throwable $fallbackError) {
-                    $this->logError($provider, $requestId, $user, $operation, $this->errorCategory($fallbackError));
-
-                    throw $fallbackError;
-                }
-            }
-
-            $this->logError($provider, $requestId, $user, $operation, $e->category);
-
-            throw $e;
-        } catch (\Throwable $e) {
-            $this->logError($provider, $requestId, $user, $operation, $this->errorCategory($e));
-
-            throw $e;
+        if ($chain === []) {
+            throw ProviderNotConfiguredException::because('Belum ada AI provider yang dikonfigurasi.');
         }
+
+        $lastError = null;
+        $attempt = 0;
+
+        foreach ($chain as $provider) {
+            $attempt++;
+            $requestId = AiLogger::requestId();
+            $usedViaStream = false;
+
+            try {
+                $response = $provider->chat($request);
+
+                AiLogger::logUsage(
+                    requestId: $requestId,
+                    providerName: $provider->name(),
+                    model: 'configured',
+                    operation: $operation.($attempt > 1 ? ':failover'.$attempt : ''),
+                    status: 'success',
+                    userId: $user->id,
+                    inputTokens: $response->inputTokens,
+                    outputTokens: $response->outputTokens,
+                    latencyMs: $response->latencyMs,
+                );
+
+                return $response;
+            } catch (AiProviderException $e) {
+                $this->logError($provider, $requestId, $user, $operation, $e->category);
+                $lastError = $e;
+
+                // One in-provider stream retry first (buffered hangs),
+                // then move to the next provider in the combo.
+                if ($e->category === ErrorNormalizer::TIMEOUT) {
+                    try {
+                        $response = $provider->chatViaStream($request);
+
+                        AiLogger::logUsage(
+                            requestId: $requestId,
+                            providerName: $provider->name(),
+                            model: 'configured',
+                            operation: $operation.':stream_retry',
+                            status: 'success',
+                            userId: $user->id,
+                            latencyMs: $response->latencyMs,
+                        );
+
+                        return $response;
+                    } catch (\Throwable $streamError) {
+                        $this->logError($provider, $requestId, $user, $operation.':stream_retry', $this->errorCategory($streamError));
+                        $lastError = $streamError;
+
+                        continue;
+                    }
+                }
+
+                if (in_array($e->category, $this->fatalCategories(), true)) {
+                    throw $e;
+                }
+
+                continue;
+            } catch (\Throwable $e) {
+                $this->logError($provider, $requestId, $user, $operation, $this->errorCategory($e));
+                $lastError = $e;
+
+                continue;
+            }
+        }
+
+        throw $lastError ?? new AiProviderException('Semua provider di combo gagal.', 'provider_error');
     }
 
     /**
      * Chat expecting a validated JSON object response.
-     * Tolerates: markdown fences, prose around JSON, reasoning-model rambling.
-     * Uses streaming transport directly for JSON ops — reasoning models on
-     * flaky gateways deliver SSE reliably but hang buffered responses.
+     * Uses streaming transport per provider (immune to buffered-response
+     * hangs on flaky gateways), with combo failover.
      */
-    public function chatJson(User $user, AiRequest $request, string $operation = 'chat'): array
+    public function chatJson(User $user, AiRequest $request, string $operation = 'chat', ?Project $project = null): array
     {
-        $provider = $this->resolver->resolve($user);
-        $requestId = AiLogger::requestId();
+        $chain = $this->resolver->resolveChain($user, $project);
 
-        try {
-            $response = $provider->chatViaStream($request->toJsonMode());
-
-            AiLogger::logUsage(
-                requestId: $requestId,
-                providerName: $provider->name(),
-                model: 'configured',
-                operation: $operation,
-                status: 'success',
-                userId: $user->id,
-                latencyMs: $response->latencyMs,
-            );
-
-            return $this->parseJson($response->content);
-        } catch (\Throwable $e) {
-            $this->logError($provider, $requestId, $user, $operation, $this->errorCategory($e));
-
-            throw $e;
+        if ($chain === []) {
+            throw ProviderNotConfiguredException::because('Belum ada AI provider yang dikonfigurasi.');
         }
+
+        $jsonRequest = $request->toJsonMode();
+        $lastError = null;
+
+        foreach ($chain as $provider) {
+            $requestId = AiLogger::requestId();
+
+            try {
+                $response = $provider->chatViaStream($jsonRequest);
+
+                AiLogger::logUsage(
+                    requestId: $requestId,
+                    providerName: $provider->name(),
+                    model: 'configured',
+                    operation: $operation,
+                    status: 'success',
+                    userId: $user->id,
+                    latencyMs: $response->latencyMs,
+                );
+
+                return $this->parseJson($response->content);
+            } catch (AiProviderException $e) {
+                $this->logError($provider, $requestId, $user, $operation, $e->category);
+                $lastError = $e;
+
+                if (in_array($e->category, $this->fatalCategories(), true)) {
+                    throw $e;
+                }
+
+                continue;
+            } catch (\Throwable $e) {
+                $this->logError($provider, $requestId, $user, $operation, $this->errorCategory($e));
+                $lastError = $e;
+
+                continue;
+            }
+        }
+
+        throw $lastError ?? new AiProviderException('Semua provider di combo gagal.', 'provider_error');
     }
 
     /**
+     * Streaming chat. Failover applies only until the first delta — once
+     * tokens flow we commit to that provider (mid-stream switching would
+     * corrupt the visible response).
+     *
      * @return \Generator<string>
      */
-    public function chatStream(User $user, AiRequest $request, string $operation = 'chat'): \Generator
+    public function chatStream(User $user, AiRequest $request, string $operation = 'chat', ?Project $project = null): \Generator
     {
-        $provider = $this->resolver->resolve($user);
+        $chain = $this->resolver->resolveChain($user, $project);
 
-        yield from $provider->chatStream($request);
+        if ($chain === []) {
+            throw ProviderNotConfiguredException::because('Belum ada AI provider yang dikonfigurasi.');
+        }
+
+        $lastError = null;
+        $providerIndex = 0;
+
+        foreach ($chain as $provider) {
+            $providerIndex++;
+            $requestId = AiLogger::requestId();
+            $buffer = '';
+            $streamed = false;
+
+            try {
+                foreach ($provider->chatStream($request) as $delta) {
+                    if ($buffer === '') {
+                        AiLogger::logUsage(
+                            requestId: $requestId,
+                            providerName: $provider->name(),
+                            model: 'configured',
+                            operation: $operation.($providerIndex > 1 ? ':failover' : ''),
+                            status: 'success',
+                            userId: $user->id,
+                        );
+                    }
+
+                    $buffer .= $delta;
+
+                    yield $delta;
+                }
+
+                return;
+            } catch (\Throwable $e) {
+                // Before any token streamed → safe to failover.
+                if (! $streamed) {
+                    $this->logError($provider, $requestId, $user, $operation, $this->errorCategory($e));
+                    $lastError = $e;
+
+                    continue;
+                }
+
+                // Mid-stream failure: log and surface — content already shown.
+                $this->logError($provider, $requestId, $user, $operation.':midstream', $this->errorCategory($e));
+
+                throw $e;
+            }
+        }
+
+        throw $lastError ?? new AiProviderException('Semua provider di combo gagal.', 'provider_error');
     }
 
-    private function logError(AiProviderContract $provider, string $requestId, User $user, string $operation, string $category): void
+    public function resolve(User $user): AiProviderContract
     {
-        AiLogger::logUsage(
-            requestId: $requestId,
-            providerName: $provider->name(),
-            model: 'configured',
-            operation: $operation,
-            status: 'error',
-            userId: $user->id,
-            errorCategory: $category,
-        );
+        return $this->resolver->resolve($user);
     }
 
     public function parseJson(string $content): array
@@ -135,7 +227,7 @@ class AiService
         $decoded = $this->tryDecode($content);
 
         if ($decoded === null) {
-            throw new AiProviderException('AI output bukan JSON valid.', 'invalid_output');
+            throw new AiProviderException('AI output bukan JSON valid.', ErrorNormalizer::INVALID_OUTPUT);
         }
 
         return $decoded;
@@ -162,8 +254,8 @@ class AiService
             }
         }
 
-        // 2. Extract every balanced {...} substring and try it — later
-        //    candidates win (prose/thinking comes before the real payload).
+        // 2. Every balanced {...} substring — later candidates win
+        //    (prose/thinking precedes the real payload).
         $candidates = $this->balancedObjects($content);
 
         foreach (array_reverse($candidates) as $candidate) {
@@ -174,14 +266,12 @@ class AiService
             }
         }
 
-        // 3. Truncated JSON repair (stream cut mid-emission) — work from
-        //    the LAST unbalanced opener: everything after it is the payload.
+        // 3. Truncated JSON repair (stream cut mid-emission)
         if ($candidates === [] && preg_match_all('/\{/', $content, $opens, PREG_OFFSET_CAPTURE)) {
             $lastOpen = end($opens[0]);
             $tail = substr($content, (int) $lastOpen[1]);
-            $content2 = $this->stripFences($tail);
 
-            if ($repaired = $this->repairTruncated($content2)) {
+            if ($repaired = $this->repairTruncated($tail)) {
                 return $repaired;
             }
         }
@@ -271,9 +361,27 @@ class AiService
         return null;
     }
 
-    public function resolve(User $user): AiProviderContract
+    /** @return list<ErrorNormalizer::*> */
+    private function fatalCategories(): array
     {
-        return $this->resolver->resolve($user);
+        return [
+            ErrorNormalizer::INVALID_KEY,
+            ErrorNormalizer::INVALID_URL,
+            ErrorNormalizer::INVALID_MODEL,
+        ];
+    }
+
+    private function logError(AiProviderContract $provider, string $requestId, User $user, string $operation, string $category): void
+    {
+        AiLogger::logUsage(
+            requestId: $requestId,
+            providerName: $provider->name(),
+            model: 'configured',
+            operation: $operation,
+            status: 'error',
+            userId: $user->id,
+            errorCategory: $category,
+        );
     }
 
     private function errorCategory(\Throwable $e): string

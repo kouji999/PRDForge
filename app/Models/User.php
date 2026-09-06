@@ -41,6 +41,11 @@ class User extends Authenticatable
         return $this->hasMany(AiProvider::class);
     }
 
+    public function aiCombos()
+    {
+        return $this->hasMany(AiCombo::class);
+    }
+
     public function aiGenerations()
     {
         return $this->hasMany(AiGeneration::class);

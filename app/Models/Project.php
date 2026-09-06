@@ -17,6 +17,7 @@ class Project extends Model
         'description',
         'status',
         'approved_at',
+        'ai_combo_id',
     ];
 
     protected function casts(): array

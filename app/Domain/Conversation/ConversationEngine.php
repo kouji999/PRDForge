@@ -64,7 +64,7 @@ class ConversationEngine
         $generation = AiLogger::beginGeneration($user->id, 'conversation', $project->id);
 
         try {
-            $response = $this->ai->chat($user, $request, 'chat');
+            $response = $this->ai->chat($user, $request, 'chat', $conversation->project);
 
             $message = $conversation->messages()->create([
                 'role' => 'assistant',
@@ -139,7 +139,7 @@ class ConversationEngine
         $started = microtime(true);
 
         try {
-            foreach ($this->ai->chatStream($user, $request, 'chat') as $delta) {
+            foreach ($this->ai->chatStream($user, $request, 'chat', $conversation->project) as $delta) {
                 $full .= $delta;
                 yield $delta;
             }

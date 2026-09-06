@@ -59,7 +59,7 @@ class RequirementExtractor
         $generation = AiLogger::beginGeneration($user->id, 'extraction', $conversation->project_id);
 
         try {
-            $data = $this->ai->chatJson($user, $request, 'extraction');
+            $data = $this->ai->chatJson($user, $request, 'extraction', $conversation->project);
 
             $result = $this->apply($conversation->project, $data);
 

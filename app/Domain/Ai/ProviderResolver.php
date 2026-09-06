@@ -4,7 +4,9 @@ namespace App\Domain\Ai;
 
 use App\Domain\Ai\Adapters\OpenAiCompatibleAdapter;
 use App\Domain\Ai\Contracts\AiProviderContract;
+use App\Models\AiCombo;
 use App\Models\AiProvider;
+use App\Models\Project;
 use App\Models\User;
 
 /**
@@ -43,6 +45,32 @@ class ProviderResolver
             providerId: $provider->id,
             providerName: $provider->name,
         );
+    }
+
+    /** Resolves the ordered adapters for a project: combo first, then user default, then system seed. */
+    public function resolveChain(User $user, ?Project $project = null): array
+    {
+        $adapters = [];
+
+        $comboId = $project?->ai_combo_id;
+
+        if ($comboId) {
+            $combo = AiCombo::with(['members.provider'])->find($comboId);
+
+            if ($combo && $combo->user_id === $user->id) {
+                foreach ($combo->members as $member) {
+                    if ($member->provider && $member->provider->deleted_at === null) {
+                        $adapters[] = $this->resolveFor($member->provider);
+                    }
+                }
+            }
+        }
+
+        if ($adapters === []) {
+            $adapters[] = $this->resolve($user);
+        }
+
+        return $adapters;
     }
 
     /** Seed user's first provider from system env if none configured. */
