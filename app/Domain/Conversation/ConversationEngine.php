@@ -122,7 +122,7 @@ class ConversationEngine
             ),
             temperature: 0.7,
             maxTokens: 8000,
-            timeoutSeconds: 180,
+            timeoutSeconds: 900, // long inputs: reasoning models think minutes before first token
         );
 
         $full = '';
@@ -144,6 +144,11 @@ class ConversationEngine
                 yield $delta;
             }
         } catch (\Throwable $e) {
+            // Mid-stream death: never lose what was already generated.
+            if (trim($full) !== '') {
+                $this->persistReply($conversation, $full, $providerName, $started, partial: true);
+            }
+
             AiLogger::failGeneration(
                 $generation,
                 $e instanceof AiProviderException ? $e->category : 'unknown',
@@ -158,20 +163,7 @@ class ConversationEngine
             throw new AiProviderException('AI mengembalikan respons kosong.', 'invalid_output');
         }
 
-        $message = $conversation->messages()->create([
-            'role' => 'assistant',
-            'content' => $full,
-            'meta' => [
-                'provider' => $providerName,
-                'latency_ms' => (int) ((microtime(true) - $started) * 1000),
-                'prompt_version' => PromptLibrary::PROMPT_VERSION,
-            ],
-        ]);
-
-        $conversation->update([
-            'message_count' => $conversation->messages()->count(),
-            'last_message_at' => now(),
-        ]);
+        $message = $this->persistReply($conversation, $full, $providerName, $started, partial: false);
 
         AiLogger::completeGeneration($generation, [
             'latency_ms' => (int) ((microtime(true) - $started) * 1000),
@@ -181,5 +173,33 @@ class ConversationEngine
         if ($onComplete) {
             $onComplete($message);
         }
+    }
+
+    /** Persist a streamed assistant reply (complete or partial). */
+    private function persistReply(Conversation $conversation, string $full, string $providerName, float $started, bool $partial): Message
+    {
+        $content = $full;
+
+        if ($partial) {
+            $content .= "\n\n_(respons terputus — ketuk ↻ di pesan untuk lanjut)_";
+        }
+
+        $message = $conversation->messages()->create([
+            'role' => 'assistant',
+            'content' => $content,
+            'meta' => [
+                'provider' => $providerName,
+                'latency_ms' => (int) ((microtime(true) - $started) * 1000),
+                'prompt_version' => PromptLibrary::PROMPT_VERSION,
+                'partial' => $partial,
+            ],
+        ]);
+
+        $conversation->update([
+            'message_count' => $conversation->messages()->count(),
+            'last_message_at' => now(),
+        ]);
+
+        return $message;
     }
 }

@@ -35,6 +35,9 @@ class ConversationController extends Controller
 
         $user = $request->user();
 
+        // Long chats: reasoning models can take minutes before first token.
+        set_time_limit(0);
+
         $this->engine->addUserMessage($conversation, $data['message']);
 
         // Nudge status forward on first real discussion

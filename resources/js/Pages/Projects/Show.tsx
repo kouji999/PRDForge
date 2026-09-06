@@ -178,6 +178,8 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
 
                 let buffer = '';
                 let streamText = '';
+                let currentEvent = '';
+                let completed = false;
 
                 for (;;) {
                     const { done, value } = await reader.read();
@@ -187,38 +189,62 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
                     const lines = buffer.split('\n');
                     buffer = lines.pop() ?? '';
 
-                    for (const line of lines) {
-                        if (line.startsWith('event: error')) {
-                            const dataLine = lines[lines.indexOf(line) + 1];
-                            if (dataLine?.startsWith('data:')) {
-                                const parsed = JSON.parse(dataLine.slice(5));
-                                throw new Error(parsed.error ?? 'AI error.');
-                            }
+                    for (const rawLine of lines) {
+                        const line = rawLine.trim();
+
+                        if (line === '') continue;
+
+                        if (line.startsWith('event:')) {
+                            currentEvent = line.slice(6).trim();
+                            continue;
                         }
+
                         if (!line.startsWith('data:')) continue;
 
-                        try {
-                            const payload = JSON.parse(line.slice(5));
+                        let payload: { delta?: string; status?: string; error?: string };
 
-                            if (payload.delta) {
-                                streamText += payload.delta;
-                                setStreamContent(streamText);
-                            }
-                            if (payload.status === 'complete') {
-                                setMessages((prev) => [
-                                    ...prev,
-                                    {
-                                        id: Date.now(),
-                                        role: 'assistant',
-                                        content: streamText,
-                                        created_at: new Date().toISOString(),
-                                    },
-                                ]);
-                            }
+                        try {
+                            payload = JSON.parse(line.slice(5));
                         } catch {
-                            // partial json line — skip
+                            continue; // partial json line — skip
+                        }
+
+                        if (currentEvent === 'error') {
+                            throw new Error(payload.error ?? 'AI error.');
+                        }
+
+                        if (payload.delta) {
+                            streamText += payload.delta;
+                            setStreamContent(streamText);
+                        }
+
+                        if (payload.status === 'complete') {
+                            completed = true;
                         }
                     }
+                }
+
+                // Stream closed — commit whatever arrived, even if the
+                // provider died before sending the done event (partial is
+                // better than silence; server also persisted it).
+                if (streamText.trim() !== '') {
+                    setMessages((prev) => [
+                        ...prev,
+                        {
+                            id: Date.now(),
+                            role: 'assistant',
+                            content: completed
+                                ? streamText
+                                : `${streamText}\n\n_(respons terputus — kirim "lanjut" untuk melanjutkan)_`,
+                            created_at: new Date().toISOString(),
+                        },
+                    ]);
+                } else if (!completed) {
+                    throw new Error(
+                        trimmed.length > 1500
+                            ? 'AI tidak merespons untuk pesan sepanjang ini. Coba kirim ulang, atau pecah jadi 2-3 pesan lebih pendek.'
+                            : 'AI tidak merespons. Coba kirim ulang.',
+                    );
                 }
 
                 setStreamContent('');
@@ -478,7 +504,7 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
                                     message={{
                                         id: -1,
                                         role: 'assistant',
-                                        content: streamContent || '…',
+                                        content: streamContent,
                                         created_at: new Date().toISOString(),
                                     }}
                                     streaming
@@ -689,15 +715,33 @@ function MessageBubble({ message, streaming }: { message: ChatMessage; streaming
                     <div className="mb-1.5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-ink-3">
                         <Sparkles size={11} className="text-accent" />
                         PRDForge AI
-                        {streaming && <span className="animate-pulse">streaming…</span>}
+                        {streaming && streamContentEmpty(message.content) && (
+                            <span className="animate-pulse text-accent">menganalisis…</span>
+                        )}
+                        {streaming && !streamContentEmpty(message.content) && (
+                            <span className="animate-pulse">menulis…</span>
+                        )}
                     </div>
                 )}
                 {isUser ? (
                     <div className="whitespace-pre-wrap">{message.content}</div>
+                ) : streamContentEmpty(message.content) && streaming ? (
+                    <div className="flex items-center gap-1.5 py-1" aria-label="AI sedang berpikir">
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-accent [animation-delay:0ms]" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-accent [animation-delay:150ms]" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-accent [animation-delay:300ms]" />
+                        <span className="ml-2 text-xs italic text-ink-ghost">
+                            menunggu token pertama… (pesan panjang = model mikir lebih lama)
+                        </span>
+                    </div>
                 ) : (
                     <Markdown content={message.content} compact />
                 )}
             </div>
         </div>
     );
+}
+
+function streamContentEmpty(content: string): boolean {
+    return content.trim() === '';
 }

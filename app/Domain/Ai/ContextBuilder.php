@@ -13,20 +13,58 @@ use Illuminate\Support\Str;
  */
 class ContextBuilder
 {
-    /** Rolling window of conversation messages sent to AI. */
-    private const MESSAGE_WINDOW = 40;
+    /** Recent messages sent to AI verbatim. */
+    private const RECENT_WINDOW = 12;
+
+    /** Older messages summarized (keeps long chats inside reasoning budget). */
+    private const SUMMARY_WINDOW = 20;
 
     /** Approximate char budget for the whole context block. */
     private const CHAR_BUDGET = 12000;
+
+    /** Per-message char cap for recent turns. */
+    private const MESSAGE_CHAR_CAP = 6000;
 
     public function forConversation(Conversation $conversation): array
     {
         $project = $conversation->project()->with('context')->firstOrFail();
 
+        $all = $conversation->latestMessages(self::RECENT_WINDOW + self::SUMMARY_WINDOW);
+
+        $split = $all->count() > self::RECENT_WINDOW
+            ? $all->slice(0, $all->count() - self::RECENT_WINDOW)->values()
+            : collect();
+
+        $recent = $all->count() > self::RECENT_WINDOW
+            ? $all->slice($all->count() - self::RECENT_WINDOW)->values()
+            : $all;
+
+        $messages = [];
+
+        // Older turns become one compact digest block — preserves decisions
+        // without flooding the reasoning budget with full history.
+        if ($split->isNotEmpty()) {
+            $digest = $split->map(function ($m) {
+                $role = $m->role === 'assistant' ? 'AI' : 'User';
+
+                return "- [{$role}] ".Str::limit(trim($m->content), 300);
+            })->implode("\n");
+
+            $messages[] = [
+                'role' => 'user',
+                'content' => "RIWAYAT DISKUSI SEBELUMNYA (ringkas — jangan diulang, cukup jadi konteks):\n{$digest}",
+            ];
+        }
+
+        foreach ($recent as $m) {
+            $messages[] = [
+                'role' => $m->role === 'assistant' ? 'assistant' : 'user',
+                'content' => Str::limit($m->content, self::MESSAGE_CHAR_CAP),
+            ];
+        }
+
         return [
-            'messages' => $conversation->latestMessages(self::MESSAGE_WINDOW)
-                ->map(fn ($m) => ['role' => $m->role, 'content' => $m->content])
-                ->all(),
+            'messages' => $messages,
             'systemContext' => $this->contextBlock($project),
         ];
     }
