@@ -175,42 +175,68 @@ class AiService
 
         foreach ($chain as $provider) {
             $providerIndex++;
-            $requestId = AiLogger::requestId();
-            $buffer = '';
-            $streamed = false;
 
-            try {
-                foreach ($provider->chatStream($request) as $delta) {
-                    if ($buffer === '') {
-                        AiLogger::logUsage(
-                            requestId: $requestId,
-                            providerName: $provider->name(),
-                            model: 'configured',
-                            operation: $operation.($providerIndex > 1 ? ':failover' : ''),
-                            status: 'success',
-                            userId: $user->id,
-                        );
+            // Single-provider setups still deserve a second chance: free-tier
+            // reasoning models intermittently return empty/hang on heavy prompts.
+            for ($attempt = 1; $attempt <= 2; $attempt++) {
+                $requestId = AiLogger::requestId();
+                $buffer = '';
+                $streamed = false;
+
+                try {
+                    foreach ($provider->chatStream($request) as $delta) {
+                        if ($buffer === '') {
+                            AiLogger::logUsage(
+                                requestId: $requestId,
+                                providerName: $provider->name(),
+                                model: 'configured',
+                                operation: $operation.($providerIndex > 1 ? ':failover' : ''),
+                                status: 'success',
+                                userId: $user->id,
+                            );
+                        }
+
+                        $buffer .= $delta;
+
+                        yield $delta;
                     }
 
-                    $buffer .= $delta;
+                    // Stream completed but emitted nothing — reasoning models
+                    // can burn the whole budget thinking. Retry / fail over.
+                    if (trim($buffer) === '') {
+                        $this->logError($provider, $requestId, $user, $operation, 'empty_response');
+                        $lastError = new AiProviderException('Provider mengembalikan respons kosong.', 'empty_response');
 
-                    yield $delta;
+                        if ($attempt < 2) {
+                            sleep(3);
+
+                            continue;
+                        }
+
+                        break; // next provider
+                    }
+
+                    return;
+                } catch (\Throwable $e) {
+                    // Before any token streamed → safe to retry / failover.
+                    if (! $streamed) {
+                        $this->logError($provider, $requestId, $user, $operation, $this->errorCategory($e));
+                        $lastError = $e;
+
+                        if ($attempt < 2 && $this->retryable($e)) {
+                            sleep(3);
+
+                            continue;
+                        }
+
+                        break; // next provider
+                    }
+
+                    // Mid-stream failure: log and surface — content already shown.
+                    $this->logError($provider, $requestId, $user, $operation.':midstream', $this->errorCategory($e));
+
+                    throw $e;
                 }
-
-                return;
-            } catch (\Throwable $e) {
-                // Before any token streamed → safe to failover.
-                if (! $streamed) {
-                    $this->logError($provider, $requestId, $user, $operation, $this->errorCategory($e));
-                    $lastError = $e;
-
-                    continue;
-                }
-
-                // Mid-stream failure: log and surface — content already shown.
-                $this->logError($provider, $requestId, $user, $operation.':midstream', $this->errorCategory($e));
-
-                throw $e;
             }
         }
 
@@ -369,6 +395,16 @@ class AiService
             ErrorNormalizer::INVALID_URL,
             ErrorNormalizer::INVALID_MODEL,
         ];
+    }
+
+    /** Transient failures worth a second attempt on the same provider. */
+    private function retryable(\Throwable $e): bool
+    {
+        if (! $e instanceof AiProviderException) {
+            return true;
+        }
+
+        return ! in_array($e->category, $this->fatalCategories(), true);
     }
 
     private function logError(AiProviderContract $provider, string $requestId, User $user, string $operation, string $category): void

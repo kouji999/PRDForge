@@ -57,8 +57,10 @@ class OpenAiCompatibleAdapter implements AiProviderContract
         $reasoning = $message['reasoning_content'] ?? null;
 
         // Reasoning models may return empty content with reasoning only.
+        // Guard: reasoning that merely echoes the input is thinking-out-loud,
+        // not an answer — reject so callers can retry/failover.
         if (! is_string($content) || trim($content) === '') {
-            if (is_string($reasoning) && trim($reasoning) !== '') {
+            if (is_string($reasoning) && trim($reasoning) !== '' && ! $this->looksLikeEcho($request, $reasoning)) {
                 $content = $reasoning;
             } else {
                 throw new AiProviderException('Provider returned empty content.', ErrorNormalizer::INVALID_OUTPUT);
@@ -137,10 +139,17 @@ class OpenAiCompatibleAdapter implements AiProviderContract
 
                 if (isset($data['choices'][0]['message'])) {
                     $message = $data['choices'][0]['message'];
-                    $content = $message['content'] ?? $message['reasoning_content'] ?? null;
+                    $reasoning = $message['reasoning_content'] ?? null;
+                    $content = $message['content'];
 
                     if (is_string($content) && $content !== '') {
                         yield $content;
+
+                        return;
+                    }
+
+                    if (is_string($reasoning) && $reasoning !== '' && ! $this->looksLikeEcho($request, $reasoning)) {
+                        yield $reasoning;
 
                         return;
                     }
@@ -319,6 +328,41 @@ class OpenAiCompatibleAdapter implements AiProviderContract
     private function endpoint(string $path): string
     {
         return rtrim($this->baseUrl, '/').$path;
+    }
+
+    /** True when "reasoning" mostly restates the user's input (echo, not an answer). */
+    private function looksLikeEcho(AiRequest $request, string $reasoning): bool
+    {
+        $input = '';
+
+        foreach ($request->messages as $m) {
+            if ($m['role'] === 'user') {
+                $input .= ' '.$m['content'];
+            }
+        }
+
+        $inputWords = preg_split('/\s+/u', trim($input)) ?: [];
+
+        if (count($inputWords) < 30) {
+            return false; // too short to judge — accept reasoning
+        }
+
+        // Sample 8 spread-out 5-word shingles from the input; count how many
+        // appear verbatim in the reasoning.
+        $count = max(1, intdiv(count($inputWords), 8));
+        $hits = 0;
+        $checked = 0;
+
+        for ($i = 0; $i < count($inputWords) - 5; $i += $count) {
+            $shingle = implode(' ', array_slice($inputWords, $i, 5));
+            $checked++;
+
+            if (mb_stripos($reasoning, $shingle) !== false) {
+                $hits++;
+            }
+        }
+
+        return $checked > 0 && $hits / $checked >= 0.6;
     }
 
     private function wrap(ConnectionException $e): AiProviderException

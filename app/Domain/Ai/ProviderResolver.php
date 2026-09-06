@@ -51,6 +51,7 @@ class ProviderResolver
     public function resolveChain(User $user, ?Project $project = null): array
     {
         $adapters = [];
+        $usedIds = [];
 
         $comboId = $project?->ai_combo_id;
 
@@ -61,16 +62,42 @@ class ProviderResolver
                 foreach ($combo->members as $member) {
                     if ($member->provider && $member->provider->deleted_at === null) {
                         $adapters[] = $this->resolveFor($member->provider);
+                        $usedIds[] = $member->provider->id;
                     }
                 }
             }
         }
 
         if ($adapters === []) {
-            $adapters[] = $this->resolve($user);
+            $primary = $user->defaultProvider();
+
+            if ($primary) {
+                $adapters[] = $this->resolveFor($primary);
+                $usedIds[] = $primary->id;
+            }
         }
 
-        return $adapters;
+        // Safety net: remaining healthy providers of the user — a single-member
+        // combo should still fail over to something instead of hard-failing.
+        $user->aiProviders()
+            ->whereNotIn('ai_providers.id', $usedIds)
+            ->orderByDesc('is_default')
+            ->orderBy('id')
+            ->get()
+            ->each(function (AiProvider $p) use (&$adapters, &$usedIds) {
+                $adapters[] = $this->resolveFor($p);
+                $usedIds[] = $p->id;
+            });
+
+        if ($adapters === []) {
+            $seeded = $this->resolveSystemDefault($user);
+
+            if ($seeded) {
+                $adapters[] = $this->resolveFor($seeded);
+            }
+        }
+
+        return array_slice($adapters, 0, 5);
     }
 
     /** Seed user's first provider from system env if none configured. */

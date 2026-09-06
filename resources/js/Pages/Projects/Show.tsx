@@ -79,6 +79,7 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
     const [generating, setGenerating] = useState(false);
     const [genError, setGenError] = useState<string | null>(null);
     const [genProgress, setGenProgress] = useState<{ chunk: number; total: number } | null>(null);
+    const [confirmGenerate, setConfirmGenerate] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
     const abortRef = useRef<AbortController | null>(null);
 
@@ -319,11 +320,12 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
         }
     };
 
-    const generatePrd = async () => {
+    const generatePrd = async (force = false) => {
         if (generating) return;
         setGenerating(true);
         setGenError(null);
         setGenProgress(null);
+        setConfirmGenerate(false);
 
         try {
             const res = await fetch(route('projects.prd.generate', { project: project.id }), {
@@ -333,6 +335,7 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
                     'X-CSRF-TOKEN':
                         document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '',
                 },
+                body: JSON.stringify({ force }),
             });
 
             const body = await res.json();
@@ -345,6 +348,16 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
             setGenError(err instanceof Error ? err.message : 'Generate PRD gagal.');
             setGenerating(false);
         }
+    };
+
+    const onGenerateClick = () => {
+        if (!readiness.ready) {
+            setConfirmGenerate(true);
+
+            return;
+        }
+
+        generatePrd(false);
     };
 
     const pollGeneration = () => {
@@ -407,22 +420,24 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
                                     </Button>
                                 </a>
                             ) : (
-                                <Button
-                                    size="sm"
-                                    variant="primary"
-                                    onClick={generatePrd}
-                                    disabled={generating || !readiness.ready}
-                                    title={readiness.ready ? 'Generate PRD' : 'Selesaikan readiness dulu'}
-                                >
-                                    {generating ? (
-                                        <Loader2 size={13} className="animate-spin" />
-                                    ) : (
-                                        <Sparkles size={13} />
-                                    )}
-                                    <span className="hidden sm:inline">
-                                        {generating ? 'Generating…' : 'Generate PRD'}
-                                    </span>
-                                </Button>
+                                <>
+                                    <Button
+                                        size="sm"
+                                        variant={readiness.ready ? 'primary' : 'secondary'}
+                                        onClick={onGenerateClick}
+                                        disabled={generating}
+                                        title={readiness.ready ? 'Generate PRD' : 'Generate PRD (readiness '+readiness.score+'%)'}
+                                    >
+                                        {generating ? (
+                                            <Loader2 size={13} className="animate-spin" />
+                                        ) : (
+                                            <Sparkles size={13} />
+                                        )}
+                                        <span className="hidden sm:inline">
+                                            {generating ? 'Generating…' : 'Generate PRD'}
+                                        </span>
+                                    </Button>
+                                </>
                             )}
                         </div>
                     </div>
@@ -625,6 +640,48 @@ export default function ProjectShow({ auth, sidebar, project, readiness, convers
                     />
                 )}
             </div>
+
+            {/* Generate PRD confirm modal (readiness not 100%) */}
+            {confirmGenerate && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+                    <div className="w-full max-w-md rounded-xl border border-line-strong bg-surface-3 p-5 shadow-[0_4px_16px_rgba(0,0,0,0.45)]">
+                        <h2 className="text-base font-semibold text-ink">Generate PRD sekarang?</h2>
+                        <p className="mt-2 text-sm leading-relaxed text-ink-3">
+                            Readiness project ini baru <span className="font-semibold text-warn">{readiness.score}%</span>.
+                            PRD tetap bisa dibuat, tapi section di bawah ini bakal diisi berdasarkan best practice,
+                            bukan keputusan lo:
+                        </p>
+                        <ul className="mt-3 space-y-1">
+                            {readiness.missing.length > 0 ? (
+                                readiness.missing.map((m) => (
+                                    <li key={m} className="flex items-center gap-1.5 text-sm text-warn">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-warn" />
+                                        {m}
+                                    </li>
+                                ))
+                            ) : (
+                                <li className="text-sm text-ink-3">Tidak ada kriteria yang belum terpenuhi.</li>
+                            )}
+                        </ul>
+                        <p className="mt-3 text-xs text-ink-3">
+                            Alternatif: jawab info kurang lewat chat, klik Extract, lalu Generate ulang.
+                        </p>
+                        <div className="mt-5 flex justify-end gap-2">
+                            <Button type="button" onClick={() => setConfirmGenerate(false)}>
+                                Lengkapi dulu
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="primary"
+                                onClick={() => generatePrd(true)}
+                            >
+                                <Sparkles size={13} />
+                                Generate Sekarang
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </AppShell>
     );
 }

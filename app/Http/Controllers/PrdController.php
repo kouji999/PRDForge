@@ -64,8 +64,16 @@ class PrdController extends Controller
     {
         $this->authorize('update', $project);
 
-        if (! $this->readinessReady($project)) {
-            return response()->json(['error' => 'Project belum ready. Lengkapi requirement dulu.', 'category' => 'not_ready'], 422);
+        $report = app(ReadinessEngine::class)->evaluate($project);
+        $force = $request->boolean('force');
+
+        if (! $report->ready && ! $force) {
+            return response()->json([
+                'error' => 'Project belum ready ('.$report->score.'%). Info kurang: '.implode(', ', $report->missing).'.',
+                'category' => 'not_ready',
+                'score' => $report->score,
+                'missing' => $report->missing,
+            ], 422);
         }
 
         // One generation at a time per project.
@@ -81,6 +89,7 @@ class PrdController extends Controller
 
         return response()->json([
             'status' => 'generating',
+            'force' => $force,
             'progress' => ['chunk' => 0, 'total' => count(PrdGenerationService::SECTION_CHUNKS)],
         ]);
     }

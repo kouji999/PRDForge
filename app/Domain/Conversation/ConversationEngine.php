@@ -9,6 +9,7 @@ use App\Domain\Ai\Observability\AiLogger;
 use App\Domain\Ai\Prompts\PromptLibrary;
 use App\Domain\Ai\ProviderNotConfiguredException;
 use App\Domain\Ai\Support\AiRequest;
+use App\Domain\Requirement\ReadinessEngine;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
@@ -23,6 +24,7 @@ class ConversationEngine
     public function __construct(
         private readonly AiService $ai,
         private readonly ContextBuilder $contextBuilder,
+        private readonly ReadinessEngine $readiness,
     ) {}
 
     public function addUserMessage(Conversation $conversation, string $content): Message
@@ -55,7 +57,7 @@ class ConversationEngine
                 projectName: $project->name,
                 contextBlock: $context['systemContext'],
                 requirementsBlock: null,
-                prdSummary: $this->contextBuilder->prdSummary($project),
+                prdSummary: $this->contextBuilder->prdSummary($project).$this->systemStatusBlock($project),
             ),
             temperature: 0.7,
             maxTokens: 8000,
@@ -118,11 +120,11 @@ class ConversationEngine
                 projectName: $project->name,
                 contextBlock: $context['systemContext'],
                 requirementsBlock: null,
-                prdSummary: $this->contextBuilder->prdSummary($project),
+                prdSummary: $this->contextBuilder->prdSummary($project).$this->systemStatusBlock($project),
             ),
             temperature: 0.7,
             maxTokens: 8000,
-            timeoutSeconds: 900, // long inputs: reasoning models think minutes before first token
+            timeoutSeconds: 240, // per-provider: no token in 4 min = dead, combo fails over to next
         );
 
         $full = '';
@@ -176,6 +178,20 @@ class ConversationEngine
     }
 
     /** Persist a streamed assistant reply (complete or partial). */
+    /** Readiness/system status appended to the conversation system prompt. */
+    private function systemStatusBlock(Project $project): string
+    {
+        $report = $this->readiness->evaluate($project);
+
+        return "\n\n## Status Sistem (WAJIB diketahui)\n"
+            .'Readiness: '.$report->score.'% ('.($report->ready ? 'READY' : 'BELUM READY').')'
+            .($report->missing ? "\nInfo kurang: ".implode(', ', $report->missing) : '')
+            ."\nTombol Generate PRD selalu bisa diklik user (ada konfirmasi bila belum ready)."
+            .' Kalau user minta PRD langsung: dukung — arahkan klik Generate PRD (bisa dipaksa walau belum ready, bagian kosong diisi best practice).'
+            .' PRD utuh HANYA dibuat lewat tombol itu; di chat, layani diskusi/outline per topik (maks ~600 kata per jawaban).'
+            .' Jangan menyuruh "lengkapi dulu semua" secara mutlak.';
+    }
+
     private function persistReply(Conversation $conversation, string $full, string $providerName, float $started, bool $partial): Message
     {
         $content = $full;
